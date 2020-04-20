@@ -18,5 +18,5 @@ unset table
 
 set logscale y
 
-plot "< paste ppo_lower.dat ppo_upper.dat"     u 1:2:5 w filledcurves lt 1 title "ppo dev", \
-     "ppo_avg_data.dat"   u 1:2 smooth csplines w l ls 1 title "ppo avg"
+plot "< paste ppo_lower.dat ppo_upper.dat" u 1:2:5 w filledc lt 1 notitle, \
+     "ppo_avg_data.dat" u 1:2 smooth csplines w l ls 1 t "ppo avg"

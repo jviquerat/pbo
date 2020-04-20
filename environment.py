@@ -5,9 +5,6 @@ import gym
 import numpy as     np
 from   gym   import spaces
 
-# Custom imports
-#from params  import *
-
 ###############################################
 ### Define gym environment
 ###############################################
@@ -18,32 +15,25 @@ from   gym   import spaces
 class env_opt(gym.Env):
 
     ### Create object
-    def __init__(self, init_obs, n_params, x_min, x_max, y_min, y_max):#, rank, time):
+    def __init__(self, init_obs, n_params, x_min, x_max, y_min, y_max):
 
         # Init from parent class
         super(env_opt, self).__init__()
 
         # Fill structure
-        #self.rank           = rank
-        #self.path           = path+'_'+time+'/'
-        #self.output_path    = self.path+str(rank)+'/'
-
-
         self.rank           = 0
         time                = 'now'
         path                = '.'
         self.path           = path+'_'+time+'/'
         self.output_path    = self.path+str(self.rank)+'/'
-        self.reward_path    = self.output_path#+reward_path
-        self.action_path    = self.output_path#+action_path
-        self.state_path     = self.output_path#+state_path
+        self.reward_path    = self.output_path
+        self.action_path    = self.output_path
+        self.state_path     = self.output_path
         self.actions        = None
         self.conv_actions   = None
         self.last_actions   = None
         self.states         = None
         self.reward         = 0.0
-        self.net_rwd        = False
-        self.network        = None
         self.n_params       = n_params
         self.init_obs       = init_obs
         self.x_min          = x_min
@@ -86,11 +76,6 @@ class env_opt(gym.Env):
 
         # Just an array of ones
         obs = self.init_obs
-        #if (self.last_actions is not None):
-        #    obs = self.last_actions
-        #else:
-        #    obs = initial_value
-        #obs = np.random.rand(2)
 
         # Fill states for file saving
         self.states = obs
@@ -114,8 +99,9 @@ class env_opt(gym.Env):
             self.conv_actions[1] = abs(self.y_min)*actions[1]
         else:
             self.conv_actions[1] = self.y_max*actions[1]
-        self.actions      = np.append(self.actions,
-                                      [actions, self.conv_actions])
+
+        # Store
+        self.actions = np.append(self.actions, [actions, self.conv_actions])
 
     ### Take one step
     def step(self, actions):
@@ -140,33 +126,7 @@ class env_opt(gym.Env):
     ### Compute reward
     def compute_reward(self, x):
 
-        # Set net_rwd to False by default
-        self.net_rwd = False
-
-        # If: - network must be used
-        #     - network is trained
-        #     - minimal generation is reached
-        #     - it is a network generation
-        # if (  use_network                 and
-        #       self.network.trained        and
-        #       self.totalstep >= net_start and
-        #     ((self.totalstep  - net_start)%net_freq == 0)):
-
-        #     # Default network reward value
-        #     self.net_rwd = penalty
-
-        #     # Safeguard
-        #     if (self.network.dataset_size == 0):
-        #         print('Error: the surrogate is not recognized')
-        #         exit()
-
-        #     # Predict reward
-        #     x            = np.reshape(x,(1,n_params))
-        #     self.net_rwd = True
-
-        #     return float(self.network.predict(x))
-
-        # Otherwise, compute reward normally
+        # Return function value
         return -(x[0]**2 + x[1]**2)
         #return -((1.0-x[0])**2 + 100.0*(x[1]-x[0]**2)**2)
 

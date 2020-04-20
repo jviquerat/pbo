@@ -4,7 +4,9 @@
 method   = "ppo"
 n_gen    = 30
 n_pop    = 6
+x_min    =-5
 x_max    = 5
+y_min    =-5
 y_max    = 5
 opt_file = "optimisation.dat"
 dat_file = "database.opt.dat"
@@ -27,8 +29,8 @@ set title "Best point cost"
 plot opt_file u 1:5 title "Best point cost" @REG_PTS
 
 # Plot best points sampling
-set xrange [-x_max:x_max]
-set yrange [-y_max:y_max]
+set xrange [x_min:x_max]
+set yrange [y_min:y_max]
 
 set title "Best point position"
 plot opt_file u 3:4 title "Best point position" @REG_PTS
@@ -41,8 +43,8 @@ set title "Every point cost"
 plot dat_file u 2:5 title "regular" @REG_PTS
 
 # Plot all points sampling
-set xrange [-x_max:x_max]
-set yrange [-y_max:y_max]
+set xrange [x_min:x_max]
+set yrange [y_min:y_max]
 
 set title "Every point"
 plot dat_file u 3:4 title "regular" @REG_PTS
@@ -57,12 +59,11 @@ unset multiplot
 ### Animated gif
 # Initial stuff
 reset
-set term gif animate delay 50 size 500,500 enhanced crop
+set term gif animate delay 50 size 600,600 enhanced crop
 set output method.".gif"
 set pm3d map
 set isosample 100,100
 set key right bottom
-set grid
 
 set palette defined ( 0 '#B2182B',\
         	    	      1 '#D6604D',\
@@ -75,8 +76,8 @@ set palette defined ( 0 '#B2182B',\
 set cbrange[0:50]
 
 # Plot all points sampling
-set xrange [-x_max:x_max]
-set yrange [-y_max:y_max]
+set xrange [x_min:x_max]
+set yrange [y_min:y_max]
 
 do for [i=1:n_gen] {
    set title method.", generation: ".i
@@ -84,7 +85,7 @@ do for [i=1:n_gen] {
    start = 1 + n_pop*(i-1)
    end   = n_pop*i
 
-   splot (x-1)**2+(y-2)**2, \
+   splot x**2+y**2, \
          dat_file every ::1::end-n_pop+1 u 3:4:(0) w p t "prev gen" @REG_PTS, \
          dat_file every ::start::end     u 3:4:(0) w p t "new  gen" @NEW_REG_PTS
          
