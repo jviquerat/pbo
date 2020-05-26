@@ -44,7 +44,7 @@ class nn(Model):
         # Define optimizer
         self.opt = tfa.optimizers.RectifiedAdam(lr       = lr,
                                                 clipnorm = clip_grd)
-        
+
     # Network forward pass
     @tf.function
     def call(self, x):
@@ -181,23 +181,15 @@ class pbo:
         for epoch in range(self.sg_epochs):
 
             # Randomize batch
-            sample = np.arange(self.n_ind*n_batch)
-            np.random.shuffle(sample)
-            sample = sample[:self.n_ind]
-
-            btc_obs = [obs[i] for i in sample]
-            btc_adv = [adv[i] for i in sample]
-            btc_mu  = [mu [i] for i in sample]
-            btc_act = [act[i] for i in sample]
-
-            btc_obs = tf.reshape(tf.cast(btc_obs, tf.float32),
-                                 [self.n_ind, self.obs_dim])
-            btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
-                                 [self.n_ind])
-            btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float32),
-                                 [self.n_ind, self.mu_dim])
-            btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
-                                 [self.n_ind, self.act_dim])
+            bff_size = self.n_ind*n_batch
+            btc_size = self.n_ind
+            btc      = self.prep_data(obs, act, adv, mu, sg,
+                                      bff_size, btc_size)
+            btc_obs  = btc[0]
+            btc_act  = btc[1]
+            btc_adv  = btc[2]
+            btc_mu   = btc[3]
+            btc_sg   = btc[4]
 
             self.train_sg(btc_obs, btc_adv, btc_act, btc_mu)
 
@@ -208,22 +200,15 @@ class pbo:
         for epoch in range(self.mu_epochs):
 
             # Randomize batch
-            sample = np.arange(self.n_ind)
-            np.random.shuffle(sample)
-
-            btc_obs = [obs[i] for i in sample]
-            btc_adv = [adv[i] for i in sample]
-            btc_sg  = [sg [i] for i in sample]
-            btc_act = [act[i] for i in sample]
-
-            btc_obs = tf.reshape(tf.cast(btc_obs, tf.float32),
-                                 [self.n_ind, self.obs_dim])
-            btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
-                                 [self.n_ind])
-            btc_sg  = tf.reshape(tf.cast(btc_sg,  tf.float32),
-                                 [self.n_ind, self.sg_dim])
-            btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
-                                 [self.n_ind, self.act_dim])
+            bff_size = self.n_ind
+            btc_size = self.n_ind
+            btc      = self.prep_data(obs, act, adv, mu, sg,
+                                      bff_size, btc_size)
+            btc_obs  = btc[0]
+            btc_act  = btc[1]
+            btc_adv  = btc[2]
+            btc_mu   = btc[3]
+            btc_sg   = btc[4]
 
             self.train_mu(btc_obs, btc_adv, btc_act, btc_sg)
 
@@ -266,6 +251,35 @@ class pbo:
 
         # Store
         self.adv[start:end] = adv
+
+    # Prepare data for training
+    def prep_data(self, obs, act, adv, mu, sg, bff_size, btc_size):
+
+        # Randomize batch
+        sample = np.arange(bff_size)
+        np.random.shuffle(sample)
+        sample = sample[:btc_size]
+
+        # Draw elements as lists
+        btc_obs = [obs[i] for i in sample]
+        btc_act = [act[i] for i in sample]
+        btc_adv = [adv[i] for i in sample]
+        btc_mu  = [mu [i] for i in sample]
+        btc_sg  = [sg [i] for i in sample]
+
+        # Reshape
+        btc_obs = tf.reshape(tf.cast(btc_obs, tf.float32),
+                             [self.n_ind, self.obs_dim])
+        btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
+                             [self.n_ind, self.act_dim])
+        btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
+                             [self.n_ind])
+        btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float32),
+                             [self.n_ind, self.mu_dim])
+        btc_sg  = tf.reshape(tf.cast(btc_sg,  tf.float32),
+                             [self.n_ind, self.sg_dim])
+
+        return btc_obs, btc_act, btc_adv, btc_mu, btc_sg
 
     # Train sg network
     @tf.function
