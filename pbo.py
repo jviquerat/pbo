@@ -10,6 +10,7 @@ warnings.filterwarnings('ignore',category=FutureWarning)
 import tensorflow             as tf
 import tensorflow.keras       as tk
 import tensorflow_probability as tfp
+import tensorflow_addons      as tfa
 from   tensorflow.keras              import Model
 from   tensorflow.keras.layers       import Dense
 from   tensorflow.keras.initializers import Orthogonal
@@ -41,8 +42,8 @@ class nn(Model):
                               activation = last))
 
         # Define optimizer
-        self.opt = tf.optimizers.Adam(lr       = lr,
-                                      clipnorm = clip_grd)
+        self.opt = tfa.optimizers.RectifiedAdam(lr       = lr,
+                                                clipnorm = clip_grd)
 
     # Network forward pass
     @tf.function
@@ -69,7 +70,10 @@ class pbo:
         self.act_dim    = act_dim
         self.obs_dim    = obs_dim
         self.mu_dim     = act_dim
-        self.sg_dim     = act_dim
+        if (pdf == 'cma-full'):
+            self.sg_dim = int(act_dim*(act_dim + 1)/2)
+        else:
+            self.sg_dim = act_dim
         self.n_gen      = n_gen
         self.n_ind      = n_ind
         self.size       = self.n_gen*self.n_ind
@@ -148,9 +152,12 @@ class pbo:
 
         # Define pdf
         if (self.pdf == 'es'):
-            pdf = tfd.Normal(loc=mu, scale=sg)
-        if (self.pdf == 'cma'):
-            pdf = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sg)
+            pdf = tfd.Normal(mu, sg)
+        if (self.pdf == 'cma-diag'):
+            pdf = tfd.MultivariateNormalDiag(mu, sg)
+        if (self.pdf == 'cma-full'):
+            cov = tfp.math.fill_triangular(sg)
+            pdf = tfd.MultivariateNormalTriL(mu, cov)
 
         # Draw actions
         actions = pdf.sample(1)
@@ -219,7 +226,7 @@ class pbo:
             btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
                                  [self.n_ind])
             btc_sg  = tf.reshape(tf.cast(btc_sg,  tf.float32),
-                                 [self.n_ind, self.mu_dim])
+                                 [self.n_ind, self.sg_dim])
             btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
                                  [self.n_ind, self.act_dim])
 
@@ -322,9 +329,16 @@ class pbo:
                 old_pdf = tfd.Normal(old_mu, old_sg)
                 log     = tf.reduce_sum(    pdf.log_prob(act), axis=1)
                 old_log = tf.reduce_sum(old_pdf.log_prob(act), axis=1)
-            if (self.pdf == 'cma'):
+            if (self.pdf == 'cma-diag'):
                 pdf     = tfd.MultivariateNormalDiag(    mu,     sg)
                 old_pdf = tfd.MultivariateNormalDiag(old_mu, old_sg)
+                log     =     pdf.log_prob(act)
+                old_log = old_pdf.log_prob(act)
+            if (self.pdf == 'cma-full'):
+                cov     = tfp.math.fill_triangular(sg)
+                old_cov = tfp.math.fill_triangular(old_sg)
+                pdf     = tfd.MultivariateNormalTriL(    mu,     cov)
+                old_pdf = tfd.MultivariateNormalTriL(old_mu, old_cov)
                 log     =     pdf.log_prob(act)
                 old_log = old_pdf.log_prob(act)
 
@@ -343,8 +357,12 @@ class pbo:
             if (self.pdf == 'es'):
                 pdf = tfd.Normal(mu, sg)
                 log = tf.reduce_sum(pdf.log_prob(act), axis=1)
-            if (self.pdf == 'cma'):
+            if (self.pdf == 'cma-diag'):
                 pdf = tfd.MultivariateNormalDiag(mu, sg)
+                log = pdf.log_prob(act)
+            if (self.pdf == 'cma-full'):
+                cov = tfp.math.fill_triangular(sg)
+                pdf = tfd.MultivariateNormalTriL(mu, cov)
                 log = pdf.log_prob(act)
 
             loss =-tf.reduce_mean(adv*log)

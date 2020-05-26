@@ -2,12 +2,12 @@
 
 ### Stats
 method   = "ppo"
-n_gen    = 30
+n_gen    = 150
 n_pop    = 6
-x_min    =-5
-x_max    = 5
-y_min    =-5
-y_max    = 5
+x_min    =-2
+x_max    = 2
+y_min    =-1
+y_max    = 3
 opt_file = "optimisation.dat"
 dat_file = "database.opt.dat"
 
@@ -85,7 +85,7 @@ do for [i=1:n_gen] {
    start = 1 + n_pop*(i-1)
    end   = n_pop*i
 
-   splot x**2+y**2, \
+   splot (1-x)**2+100*(y-x**2)**2, \
          dat_file every ::1::end-n_pop+1 u 3:4:(0) w p t "prev gen" @REG_PTS, \
          dat_file every ::start::end     u 3:4:(0) w p t "new  gen" @NEW_REG_PTS
          

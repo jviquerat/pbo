@@ -127,8 +127,8 @@ class env_opt(gym.Env):
     def compute_reward(self, x):
 
         # Return function value
-        return -(x[0]**2 + x[1]**2)
-        #return -((1.0-x[0])**2 + 100.0*(x[1]-x[0]**2)**2)
+        #return -(x[0]**2 + x[1]**2)
+        return -((1.0-x[0])**2 + 100.0*(x[1]-x[0]**2)**2)
 
     ### Reset environment
     def reset(self):
