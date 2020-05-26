@@ -44,7 +44,7 @@ class nn(Model):
         # Define optimizer
         self.opt = tfa.optimizers.RectifiedAdam(lr       = lr,
                                                 clipnorm = clip_grd)
-
+        
     # Network forward pass
     @tf.function
     def call(self, x):
@@ -92,7 +92,7 @@ class pbo:
 
         # Init network parameters
         dummy = self.net_mu(tf.ones([1,self.obs_dim]))
-        dummy = self.net_sg(tf.ones([1,self.obs_dim]))
+        dummy = self.net_sg(tf.ones([1,self.obs_dim+self.mu_dim]))
 
         # If loss is ppo-style
         if (self.loss == 'ppo'):
@@ -138,13 +138,15 @@ class pbo:
     # Get actions from network
     def get_actions(self, state):
 
-        # Reshape state
-        state = tf.convert_to_tensor([state], dtype=tf.float32)
-
-        # Predict means and deviations
-        mu = self.net_mu.call(state)
+        # Predict mu
+        x  = tf.convert_to_tensor([state], dtype=tf.float32)
+        mu = self.net_mu.call(x)
         mu = np.asarray(mu)[0]
-        sg = self.net_sg.call(state)
+
+        # Predict sigma
+        x  = np.hstack((state,mu))
+        x  = tf.convert_to_tensor([x], dtype=tf.float32)
+        sg = self.net_sg.call(x)
         sg = np.asarray(sg)[0]
 
         # Empty actions array
@@ -176,41 +178,34 @@ class pbo:
         n_batch = min(n_batch,len(obs)//self.n_ind)
 
         # Update sigma network
-        for i in range(n_batch):
+        for epoch in range(self.sg_epochs):
 
-            # Retrieve batch
-            btc_obs = obs[i*self.n_ind:(i+1)*self.n_ind]
-            btc_adv = adv[i*self.n_ind:(i+1)*self.n_ind]
-            btc_mu  = mu [i*self.n_ind:(i+1)*self.n_ind]
-            btc_act = act[i*self.n_ind:(i+1)*self.n_ind]
+            # Randomize batch
+            sample = np.arange(self.n_ind*n_batch)
+            np.random.shuffle(sample)
+            sample = sample[:self.n_ind]
 
-            for epoch in range(self.sg_epochs):
+            btc_obs = [obs[i] for i in sample]
+            btc_adv = [adv[i] for i in sample]
+            btc_mu  = [mu [i] for i in sample]
+            btc_act = [act[i] for i in sample]
 
-                # Randomize batch
-                sample = np.arange(self.n_ind)
-                np.random.shuffle(sample)
+            btc_obs = tf.reshape(tf.cast(btc_obs, tf.float32),
+                                 [self.n_ind, self.obs_dim])
+            btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
+                                 [self.n_ind])
+            btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float32),
+                                 [self.n_ind, self.mu_dim])
+            btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
+                                 [self.n_ind, self.act_dim])
 
-                btc_obs = [btc_obs[i] for i in sample]
-                btc_adv = [btc_adv[i] for i in sample]
-                btc_mu  = [btc_mu [i] for i in sample]
-                btc_act = [btc_act[i] for i in sample]
-
-                btc_obs = tf.reshape(tf.cast(btc_obs, tf.float32),
-                                     [self.n_ind, self.obs_dim])
-                btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
-                                     [self.n_ind])
-                btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float32),
-                                     [self.n_ind, self.mu_dim])
-                btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
-                                     [self.n_ind, self.act_dim])
-
-                self.train_sg(btc_obs, btc_adv, btc_act, btc_mu)
+            self.train_sg(btc_obs, btc_adv, btc_act, btc_mu)
 
         # Mu network uses standard batch size
         obs, act, adv, mu, sg = self.get_batch(1)
 
         # Update mu network
-        for j in range(self.mu_epochs):
+        for epoch in range(self.mu_epochs):
 
             # Randomize batch
             sample = np.arange(self.n_ind)
@@ -281,7 +276,8 @@ class pbo:
             tape.watch(var)
 
             # Network forward pass
-            sg = tf.convert_to_tensor(self.net_sg.call(obs))
+            x  = tf.concat([obs,mu], axis=1)
+            sg = tf.convert_to_tensor(self.net_sg.call(x))
 
             # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg)
