@@ -1,110 +1,88 @@
 # Generic imports
 import os
+import sys
+import json
+import time
+import collections
 import numpy as np
 
 # Custom imports
-from params      import *
-from environment import *
-from pbo         import *
+from training import *
 
 ########################
-# Process training
+# Parameters decoder to collect json file
 ########################
-def launch_training():
-
-    # Declare environement and agent
-    env   = env_opt(init_obs, n_params, x_min, x_max, y_min, y_max)
-    agent = pbo(pdf, loss, n_params, n_params, n_gen, n_ind, lr,
-                mu_epochs, sg_epochs, clip_grd, sg_batch,
-                clip_adv, clip_pol, mu_arch, sg_arch)
-
-    # Initialize parameters
-    episode = 0
-    bst_cac = np.zeros(n_params)
-    bst_rwd = -1.0e10
-
-    # Loop over generations
-    for gen in range(n_gen):
-
-        # Printings
-        if (gen == n_gen-1): end = '\n'
-        if (gen != n_gen-1): end = '\r'
-        print('#   Generation #'+str(gen), end=end)
-
-        # Loop over individuals
-        for ind in range(n_ind):
-
-            # Make one iteration
-            obs          = env.reset()
-            act, mu, sig = agent.get_actions(obs)
-            rwd, cac     = env.step(act)
-            agent.store_transition(obs, act, cac, rwd, mu, sig)
-
-            # Store a few things
-            agent.ep [episode] = episode
-            agent.gen[episode] = gen
-
-            if (rwd > bst_rwd):
-                bst_rwd = rwd
-                bst_cac = cac
-
-            # Update global index
-            episode += 1
-
-        # Store a few things
-        agent.bst_gen[gen] = gen
-        agent.bst_ep [gen] = episode
-        agent.bst_rwd[gen] = bst_rwd
-        agent.bst_cac[gen] = bst_cac
-
-        # Train network after one generation
-        agent.compute_advantages()
-        agent.train_networks()
-
-    # Write to files
-    filename = 'database.opt.dat'
-    np.savetxt(filename, np.transpose([agent.gen,
-                                       agent.ep,
-                                       agent.cac[:,0],
-                                       agent.cac[:,1],
-                                       agent.rwd*(-1.0),
-                                       np.zeros(n_gen*n_ind)]))
-
-    filename = 'optimisation.dat'
-    np.savetxt(filename, np.transpose([agent.bst_gen+1,
-                                       agent.bst_ep,
-                                       agent.bst_cac[:,0],
-                                       agent.bst_cac[:,1],
-                                       agent.bst_rwd*(-1.0)]))
+def params_decoder(p_dict):
+    return collections.namedtuple('X', p_dict.keys())(*p_dict.values())
 
 ########################
 # Average training over multiple runs
 ########################
-idx  = np.zeros((      n_gen), dtype=int)
-cost = np.zeros((n_avg,n_gen), dtype=float)
 
-for i in range(n_avg):
+# Check command-line input for json file
+if (len(sys.argv) == 2):
+    json_file = sys.argv[1]
+else:
+    print('Command line error, please use as follows:')
+    print('python3 start.py my_file.json')
+
+# Read json parameter file
+with open(json_file, "r") as f:
+    params = json.load(f, object_hook=params_decoder)
+
+# Storage arrays
+res_path   = 'results'
+n_data     = 5
+gen        = np.zeros((              params.n_gen),         dtype=int)
+data       = np.zeros((params.n_avg, params.n_gen, n_data), dtype=float)
+avg_data   = np.zeros((              params.n_gen, n_data), dtype=float)
+stdp_data  = np.zeros((              params.n_gen, n_data), dtype=float)
+stdm_data  = np.zeros((              params.n_gen, n_data), dtype=float)
+
+# Open storage repositories
+if (not os.path.exists(res_path)):
+    os.makedirs(res_path)
+
+t         = time.localtime()
+path_time = time.strftime("%H-%M-%S", t)
+path      = res_path+'/'+params.env_name+'_'+str(path_time)
+if (not os.path.exists(path)):
+    os.makedirs(path)
+
+for i in range(params.n_avg):
     print('### Avg run #'+str(i))
-    launch_training()
+    start_time = time.time()
+    launch_training(params, path, i)
+    dt = time.time() - start_time
+    print('#   Elapsed time: {:.3f} seconds'.format(dt))
 
-    f         = np.loadtxt('optimisation.dat')
-    idx       = f[:,0]
-    cost[i,:] = f[:,4]
+    f   = np.loadtxt(path+'/pbo.dat')
+    gen = f[:params.n_gen,0]
+    for j in range(n_data):
+        data[i,:,j] = f[:params.n_gen,j+1]
 
 # Write to file
-file_out = 'ppo_avg_data.dat'
-avg      = np.mean(cost,axis=0)
-std      = 0.5*np.std(cost,axis=0)
+file_out  = path+'/pbo_avg.dat'
+array     = np.vstack(gen)
+for j in range(n_data):
+    avg     = np.mean(data[:,:,j], axis=0)
+    std     = np.std (data[:,:,j], axis=0)
 
-# Be careful about standard deviation plotted in log scale
-log_avg  = np.log(avg)
-log_std  = 0.434*std/avg
-log_p    = log_avg+log_std
-log_m    = log_avg-log_std
-p        = np.exp(log_p)
-m        = np.exp(log_m)
+    if (j == 0):
+        log_avg = np.log(avg)
+        log_std = 0.434*std/avg
+        log_p   = log_avg + log_std
+        log_m   = log_avg - log_std
+        p       = np.exp(log_p)
+        m       = np.exp(log_m)
+    else:
+        avg   = np.mean(data[:,:,j], axis=0)
+        std   = np.std (data[:,:,j], axis=0)
+        p     = avg + std
+        m     = avg - std
+    array   = np.hstack((array,np.vstack(avg)))
+    array   = np.hstack((array,np.vstack(p)))
+    array   = np.hstack((array,np.vstack(m)))
 
-array    = np.transpose(np.stack((idx, avg, m, p)))
-np.savetxt(file_out, array)
-os.system('gnuplot -c plot_single.gnu')
-os.system('gnuplot -c plot_std.gnu')
+np.savetxt(file_out, array, fmt='%.5e')
+os.system('gnuplot -c plot/plot.gnu '+path)

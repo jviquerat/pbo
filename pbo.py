@@ -1,109 +1,58 @@
 # Generic imports
-import os
 import gym
-import warnings
 import numpy as np
 
-# Import tensorflow and filter warning messages
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '10'
-warnings.filterwarnings('ignore',category=FutureWarning)
-import tensorflow             as tf
-import tensorflow.keras       as tk
-import tensorflow_probability as tfp
-import tensorflow_addons      as tfa
-from   tensorflow.keras              import Model
-from   tensorflow.keras.layers       import Dense
-from   tensorflow.keras.initializers import Orthogonal
-
-# Define alias
-tfd = tfp.distributions
-
 # Custom imports
-from environment import *
-
-###############################################
-### Generic neural network for mu and sigma predictions
-class nn(Model):
-    def __init__(self, arch, dim, last, clip_grd, lr):
-        super(nn, self).__init__()
-
-        # Initialize network as empty list
-        self.net = []
-
-        # Define hidden layers
-        for layer in range(len(arch)):
-            self.net.append(Dense(arch[layer],
-                                  kernel_initializer=Orthogonal(gain=0.5),
-                                  activation = 'sigmoid'))
-
-        # Define last layer
-        self.net.append(Dense(dim,
-                              kernel_initializer=Orthogonal(gain=0.1),
-                              activation = last))
-
-        # Define optimizer
-        self.opt = tfa.optimizers.RectifiedAdam(lr       = lr,
-                                                clipnorm = clip_grd)
-
-    # Network forward pass
-    @tf.function
-    def call(self, x):
-
-        # Compute output
-        for layer in range(len(self.net)):
-            x = self.net[layer](x)
-
-        return x
+from agent import *
 
 ###############################################
 ### Class pbo
 ### A PBO agent for optimization
 class pbo:
-    def __init__(self,
-                 pdf, loss, act_dim, obs_dim, n_gen, n_ind, lr,
-                 mu_epochs, sg_epochs, clip_grd, sg_batch, clip_adv,
-                 clip_pol, mu_arch, sg_arch):
+    def __init__(self, params, act_dim):
 
         # Initialize from arguments
-        self.pdf        = pdf
-        self.loss       = loss
+        self.pdf        = params.pdf
         self.act_dim    = act_dim
-        self.obs_dim    = obs_dim
+        self.obs_dim    = 1
         self.mu_dim     = act_dim
-        if (pdf == 'cma-full'):
-            self.sg_dim = int(act_dim*(act_dim + 1)/2)
-        else:
-            self.sg_dim = act_dim
-        self.n_gen      = n_gen
-        self.n_ind      = n_ind
+        self.sg_dim = self.act_dim
+        if (self.pdf == 'cma-full'):
+            self.sg_dim = int(self.act_dim*(self.act_dim + 1)/2)
+        self.n_gen      = params.n_gen
+        self.n_ind      = params.n_ind
         self.size       = self.n_gen*self.n_ind
 
-        self.sg_batch   = sg_batch
-        self.lr         = lr
-        self.mu_epochs  = mu_epochs
-        self.sg_epochs  = sg_epochs
-        self.clip_adv   = clip_adv
-        self.clip_pol   = clip_pol
-        self.clip_grd   = clip_grd
+        self.sg_batch   = params.sg_batch
+        self.lr         = params.lr
+        self.mu_epochs  = params.mu_epochs
+        self.sg_epochs  = params.sg_epochs
+        self.adv_clip   = params.adv_clip
+        self.grd_clip   = params.grd_clip
 
-        # Build networks
-        self.net_mu = nn(mu_arch, self.mu_dim, 'linear',   clip_grd, lr)
-        self.net_sg = nn(sg_arch, self.sg_dim, 'softplus', clip_grd, lr)
+        # Build mu network
+        self.net_mu     = nn(params.mu_arch,
+                             self.mu_dim,
+                             'tanh',
+                             self.grd_clip,
+                             self.lr)
+
+        # Build sigma network
+        if (self.pdf in ['es', 'cma-diag']):
+            self.net_sg = nn(params.sg_arch,
+                             self.mu_dim,
+                             'softplus',
+                             self.grd_clip,
+                             self.lr)
+        if (self.pdf in ['cma-full']):
+            self.net_sg = nn_cma(params.sg_arch,
+                                 self.mu_dim,
+                                 self.grd_clip,
+                                 self.lr)
 
         # Init network parameters
         dummy = self.net_mu(tf.ones([1,self.obs_dim]))
-        dummy = self.net_sg(tf.ones([1,self.obs_dim+self.mu_dim]))
-
-        # If loss is ppo-style
-        if (self.loss == 'ppo'):
-            self.net_mu_old = nn(mu_arch,self.mu_dim,'linear',  clip_grd,lr)
-            self.net_sg_old = nn(sg_arch,self.sg_dim,'softplus',clip_grd,lr)
-            dummy      = self.net_mu_old(tf.ones([1,self.obs_dim]))
-            dummy      = self.net_sg_old(tf.ones([1,self.obs_dim]))
-            mu_weights = self.net_mu.get_weights()
-            sg_weights = self.net_sg.get_weights()
-            self.net_mu_old.set_weights(mu_weights)
-            self.net_sg_old.set_weights(sg_weights)
+        dummy = self.net_sg(tf.ones([1,self.obs_dim]))
 
         # Storing buffers
         self.idx     = 0
@@ -112,17 +61,23 @@ class pbo:
         self.ep      = np.zeros( self.size,                 dtype=np.int32)
         self.obs     = np.zeros((self.size,  self.obs_dim), dtype=np.float32)
         self.act     = np.zeros((self.size,  self.act_dim), dtype=np.float32)
-        self.cac     = np.zeros((self.size,  self.act_dim), dtype=np.float32)
+        self.acc     = np.zeros((self.size,  self.act_dim), dtype=np.float32)
+        self.adv     = np.zeros( self.size,                 dtype=np.float32)
         self.rwd     = np.zeros( self.size,                 dtype=np.float32)
         self.mu      = np.zeros((self.size,  self.mu_dim),  dtype=np.float32)
         self.sg      = np.zeros((self.size,  self.sg_dim),  dtype=np.float32)
 
-        self.bst_cac = np.zeros((self.n_gen, self.act_dim), dtype=np.float32)
+        self.bst_acc = np.zeros((self.n_gen, self.act_dim), dtype=np.float32)
         self.bst_rwd = np.zeros( self.n_gen,                dtype=np.float32)
         self.bst_gen = np.zeros( self.n_gen,                dtype=np.int32)
         self.bst_ep  = np.zeros( self.n_gen,                dtype=np.int32)
 
-        self.adv     = np.zeros( self.size,                 dtype=np.float32)
+        self.ls_mu   = np.zeros( self.n_gen,                dtype=np.float32)
+        self.ls_sg   = np.zeros( self.n_gen,                dtype=np.float32)
+        self.nrm_mu  = np.zeros( self.n_gen,                dtype=np.float32)
+        self.nrm_sg  = np.zeros( self.n_gen,                dtype=np.float32)
+        self.lr_mu   = np.zeros( self.n_gen,                dtype=np.float32)
+        self.lr_sg   = np.zeros( self.n_gen,                dtype=np.float32)
 
     # Get batch of observations, actions and rewards
     def get_batch(self, n_batch):
@@ -144,8 +99,7 @@ class pbo:
         mu = np.asarray(mu)[0]
 
         # Predict sigma
-        x  = np.hstack((state,mu))
-        x  = tf.convert_to_tensor([x], dtype=tf.float32)
+        x  = tf.convert_to_tensor([state], dtype=tf.float32)
         sg = self.net_sg.call(x)
         sg = np.asarray(sg)[0]
 
@@ -158,8 +112,15 @@ class pbo:
         if (self.pdf == 'cma-diag'):
             pdf = tfd.MultivariateNormalDiag(mu, sg)
         if (self.pdf == 'cma-full'):
-            cov = tfp.math.fill_triangular(sg)
-            pdf = tfd.MultivariateNormalTriL(mu, cov)
+            diag = sg[0:self.act_dim]
+            scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
+            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
+            diag = sg[self.act_dim:]
+            out  = tf.linalg.set_diag(out,diag,k=-1)
+            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
+
+            cov  = tf.math.multiply(scl, out)
+            pdf  = tfd.MultivariateNormalTriL(mu, cov)
 
         # Draw actions
         actions = pdf.sample(1)
@@ -169,6 +130,10 @@ class pbo:
 
     # Train networks
     def train_networks(self):
+
+        # Get learning rates
+        lr_mu = self.net_mu.opt._decayed_lr(tf.float32)
+        lr_sg = self.net_sg.opt._decayed_lr(tf.float32)
 
         # Sigma network uses larger batch to simulate rank-mu update
         n_batch               = self.sg_batch
@@ -191,7 +156,7 @@ class pbo:
             btc_mu   = btc[3]
             btc_sg   = btc[4]
 
-            self.train_sg(btc_obs, btc_adv, btc_act, btc_mu)
+            ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act, btc_mu)
 
         # Mu network uses standard batch size
         obs, act, adv, mu, sg = self.get_batch(1)
@@ -210,44 +175,87 @@ class pbo:
             btc_mu   = btc[3]
             btc_sg   = btc[4]
 
-            self.train_mu(btc_obs, btc_adv, btc_act, btc_sg)
+            ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act, btc_sg)
 
-        # Update old network if loss is ppo-style
-        if (self.loss == 'ppo'):
-            mu_weights = self.net_mu.get_weights()
-            sg_weights = self.net_sg.get_weights()
-            self.net_mu_old.set_weights(mu_weights)
-            self.net_sg_old.set_weights(sg_weights)
+        # Return infos
+        return [ls_mu, ls_sg, nrm_mu, nrm_sg, lr_mu, lr_sg]
+
+    # Printings
+    def print_generation(self, gen):
+
+        # Print
+        if (gen == self.n_gen-1): end = '\n'
+        if (gen != self.n_gen-1): end = '\r'
+        print('#   Generation #'+str(gen), end=end)
 
     # Store transitions into buffer
-    def store_transition(self, obs, act, cac, rwd, mu, sg):
+    def store_transition(self, obs, act, acc, rwd, mu, sg):
 
         # Fill buffers
         self.obs[self.idx] = obs
         self.act[self.idx] = act
-        self.cac[self.idx] = cac
+        self.acc[self.idx] = acc
         self.rwd[self.idx] = rwd
         self.mu [self.idx] = mu
         self.sg [self.idx] = sg
-
-        # Update index
         self.idx          += 1
+
+    # Store learning data
+    def store_learning_data(self, gen, ep, bst_rwd, bst_acc, data):
+
+        # Store a few things
+        self.bst_gen[gen] = gen
+        self.bst_ep [gen] = ep
+        self.bst_rwd[gen] = bst_rwd
+        self.bst_acc[gen] = bst_acc
+        self.ls_mu  [gen] = data[0]
+        self.ls_sg  [gen] = data[1]
+        self.nrm_mu [gen] = data[2]
+        self.nrm_sg [gen] = data[3]
+
+    # Write learning data
+    def write_learning_data(self, path, run):
+
+        # Data related to current run
+        filename = path+'/pbo_'+str(run)
+        np.savetxt(filename,
+                   np.hstack([np.reshape(self.gen,        (-1,1)),
+                              np.reshape(self.ep,         (-1,1)),
+                              np.reshape(self.rwd*(-1.0), (-1,1)),
+                              self.acc,
+                              self.mu,
+                              self.sg]),
+                   fmt='%.5e')
+
+        # Data for future averaging
+        filename = path+'/pbo.dat'
+        np.savetxt(filename,
+                   np.hstack([np.reshape(self.bst_gen+1,      (-1,1)),
+                              np.reshape(self.bst_rwd*(-1.0), (-1,1)),
+                              np.reshape(self.ls_mu,          (-1,1)),
+                              np.reshape(self.ls_sg,          (-1,1)),
+                              np.reshape(self.nrm_mu,         (-1,1)),
+                              np.reshape(self.nrm_sg,         (-1,1)),
+                              np.reshape(self.lr_mu,          (-1,1)),
+                              np.reshape(self.lr_sg,          (-1,1)),
+                              self.bst_acc]),
+                   fmt='%.5e')
 
     # Compute advantages
     def compute_advantages(self):
 
         # Start and end indices of last generation
-        start        = max(0,self.idx - self.n_ind)
-        end          = self.idx
+        start   = max(0,self.idx - self.n_ind)
+        end     = self.idx
 
         # Compute normalized advantage
-        avg_rwd      = np.mean(self.rwd[start:end])
-        std_rwd      = np.std( self.rwd[start:end])
-        adv          = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-7)
+        avg_rwd = np.mean(self.rwd[start:end])
+        std_rwd = np.std( self.rwd[start:end])
+        adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-7)
 
         # Clip advantages if required
-        if (self.clip_adv):
-            adv = np.maximum(adv,0.0)
+        if (self.adv_clip):
+            adv = np.maximum(adv, 0.0)
 
         # Store
         self.adv[start:end] = adv
@@ -269,15 +277,15 @@ class pbo:
 
         # Reshape
         btc_obs = tf.reshape(tf.cast(btc_obs, tf.float32),
-                             [self.n_ind, self.obs_dim])
+                             [btc_size, self.obs_dim])
         btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
-                             [self.n_ind, self.act_dim])
+                             [btc_size, self.act_dim])
         btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
-                             [self.n_ind])
+                             [btc_size])
         btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float32),
-                             [self.n_ind, self.mu_dim])
+                             [btc_size, self.mu_dim])
         btc_sg  = tf.reshape(tf.cast(btc_sg,  tf.float32),
-                             [self.n_ind, self.sg_dim])
+                             [btc_size, self.sg_dim])
 
         return btc_obs, btc_act, btc_adv, btc_mu, btc_sg
 
@@ -290,8 +298,7 @@ class pbo:
             tape.watch(var)
 
             # Network forward pass
-            x  = tf.concat([obs,mu], axis=1)
-            sg = tf.convert_to_tensor(self.net_sg.call(x))
+            sg = tf.convert_to_tensor(self.net_sg.call(obs))
 
             # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg)
@@ -328,53 +335,27 @@ class pbo:
     @tf.function
     def get_loss(self, obs, adv, act, mu, sg):
 
-        # PPO-style loss
-        if (self.loss == 'ppo'):
-            old_sg = tf.convert_to_tensor(self.net_sg_old(obs))
-            old_mu = tf.convert_to_tensor(self.net_mu_old(obs))
+        # Compute pdf
+        if (self.pdf == 'es'):
+            pdf = tfd.Normal(mu[0], sg[0])
+            log = tf.reduce_sum(pdf.log_prob(act), axis=1)
+        if (self.pdf == 'cma-diag'):
+            pdf = tfd.MultivariateNormalDiag(mu[0], sg[0])
+            log = pdf.log_prob(act)
+        if (self.pdf == 'cma-full'):
+            diag = sg[0,0:self.act_dim]
+            scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
+            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
+            diag = sg[0,self.act_dim:]
+            out  = tf.linalg.set_diag(out,diag,k=-1)
+            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
 
-            # Compute pdf
-            if (self.pdf == 'es'):
-                pdf     = tfd.Normal(    mu,     sg)
-                old_pdf = tfd.Normal(old_mu, old_sg)
-                log     = tf.reduce_sum(    pdf.log_prob(act), axis=1)
-                old_log = tf.reduce_sum(old_pdf.log_prob(act), axis=1)
-            if (self.pdf == 'cma-diag'):
-                pdf     = tfd.MultivariateNormalDiag(    mu,     sg)
-                old_pdf = tfd.MultivariateNormalDiag(old_mu, old_sg)
-                log     =     pdf.log_prob(act)
-                old_log = old_pdf.log_prob(act)
-            if (self.pdf == 'cma-full'):
-                cov     = tfp.math.fill_triangular(sg)
-                old_cov = tfp.math.fill_triangular(old_sg)
-                pdf     = tfd.MultivariateNormalTriL(    mu,     cov)
-                old_pdf = tfd.MultivariateNormalTriL(old_mu, old_cov)
-                log     =     pdf.log_prob(act)
-                old_log = old_pdf.log_prob(act)
+            cov  = tf.math.multiply(scl, out)
+            pdf  = tfd.MultivariateNormalTriL(mu[0], cov)
+            log  = pdf.log_prob(act)
 
-            # Compute surrogate
-            ratio = tf.exp(log - old_log)
-            s1    = tf.multiply(adv,ratio)
-            clp   = tf.clip_by_value(ratio,
-                                     1.0-self.clip_pol,
-                                     1.0+self.clip_pol)
-            s2    = tf.multiply(adv,clp)
-            loss  =-tf.reduce_mean(tf.minimum(s1,s2))
-
-        # VPG-style loss
-        if (self.loss == 'vpg'):
-            # Compute pdf
-            if (self.pdf == 'es'):
-                pdf = tfd.Normal(mu, sg)
-                log = tf.reduce_sum(pdf.log_prob(act), axis=1)
-            if (self.pdf == 'cma-diag'):
-                pdf = tfd.MultivariateNormalDiag(mu, sg)
-                log = pdf.log_prob(act)
-            if (self.pdf == 'cma-full'):
-                cov = tfp.math.fill_triangular(sg)
-                pdf = tfd.MultivariateNormalTriL(mu, cov)
-                log = pdf.log_prob(act)
-
-            loss =-tf.reduce_mean(adv*log)
+        # Compute loss
+        s    = tf.multiply(adv, log)
+        loss =-tf.reduce_mean(s)
 
         return loss
