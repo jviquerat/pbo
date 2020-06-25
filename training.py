@@ -1,22 +1,24 @@
 # Generic imports
-import sys
 import numpy as np
 
 # Custom imports
-from pbo import *
+from pbo      import *
+from par_envs import *
 
 ########################
 # Process training
 ########################
 def launch_training(params, path, run):
 
+    # Sanitize input
+    if (params.n_cpu > params.n_ind):
+        print('Error : n_cpu cannot exceed n_ind')
+        exit()
+
     # Declare environment and agent
-    sys.path.append(os.path.join(sys.path[0],'envs'))
-    module    = __import__(params.env_name)
-    env_build = getattr(module, params.env_name)
-    env       = env_build()
-    n_params  = env.n_params
-    agent     = pbo(params, n_params)
+    env      = par_envs(params.env_name, params.n_cpu)
+    n_params = env.n_params
+    agent    = pbo(params, n_params)
 
     # Initialize parameters
     ep      = 0
@@ -29,25 +31,33 @@ def launch_training(params, path, run):
         # Printings
         agent.print_generation(gen)
 
-        # Loop over individuals
-        for ind in range(params.n_ind):
+        # Handle n_cpu < n_ind
+        size = params.n_ind//params.n_cpu
+        rest = params.n_ind%params.n_cpu
+        if (rest > 0): size += 1
+        n_loop = params.n_cpu*np.ones((size), dtype=np.int16)
+        if (rest > 0): n_loop[-1] = rest
 
-            # Make one iteration
-            obs          = env.observe()
-            act, mu, sig = agent.get_actions(obs)
-            rwd, acc     = env.step(act)
-            agent.store_transition(obs, act, acc, rwd, mu, sig)
+        # Loop over individuals
+        for i in range(size):
+
+            # Make one iteration over all processes
+            n            = n_loop[i]
+            obs          = env.observe(n)
+            act, mu, sig = agent.get_actions(obs, n)
+            rwd, acc     = env.step(act, n)
+            agent.store_transition(obs, act, acc, rwd, mu, sig, n)
 
             # Store a few things
-            agent.ep [ep] = ep
-            agent.gen[ep] = gen
+            for ind in range(n):
+                agent.ep [ep] = ep
+                agent.gen[ep] = gen
+                ep           += 1
 
-            if (rwd > bst_rwd):
-                bst_rwd = rwd
-                bst_acc = acc
-
-            # Update global index
-            ep += 1
+                # Store best reward
+                if (rwd[ind] > bst_rwd):
+                    bst_rwd = rwd[ind]
+                    bst_acc = acc[ind]
 
         # Train network after one generation
         agent.compute_advantages()
@@ -58,3 +68,6 @@ def launch_training(params, path, run):
 
     # Write to files
     agent.write_learning_data(path, run)
+
+    # Close environments
+    env.close()

@@ -5,7 +5,7 @@ path = ARG1
 reset
 set print "-"
 set term png truecolor size 600,600
-set output "pbo_multiple.png"
+set output "pbo_methods.png"
 set grid
 set style fill transparent solid 0.25 noborder
 set style line 1  lt 1  lw 3 pt 3 ps 0.5

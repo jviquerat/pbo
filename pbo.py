@@ -22,6 +22,7 @@ class pbo:
         self.n_gen      = params.n_gen
         self.n_ind      = params.n_ind
         self.size       = self.n_gen*self.n_ind
+        self.n_cpu      = params.n_cpu
 
         self.sg_batch   = params.sg_batch
         self.lr         = params.lr
@@ -91,20 +92,17 @@ class pbo:
                self.sg [start:end]
 
     # Get actions from network
-    def get_actions(self, state):
+    def get_actions(self, state, n):
 
         # Predict mu
-        x  = tf.convert_to_tensor([state], dtype=tf.float32)
+        x  = tf.convert_to_tensor([state[0]], dtype=tf.float32)
         mu = self.net_mu.call(x)
         mu = np.asarray(mu)[0]
 
         # Predict sigma
-        x  = tf.convert_to_tensor([state], dtype=tf.float32)
+        x  = tf.convert_to_tensor([state[0]], dtype=tf.float32)
         sg = self.net_sg.call(x)
         sg = np.asarray(sg)[0]
-
-        # Empty actions array
-        actions = np.zeros(self.act_dim)
 
         # Define pdf
         if (self.pdf == 'es'):
@@ -123,10 +121,15 @@ class pbo:
             pdf  = tfd.MultivariateNormalTriL(mu, cov)
 
         # Draw actions
-        actions = pdf.sample(1)
-        actions = np.asarray(actions)[0]
+        ac = pdf.sample(n)
+        ac = np.asarray(ac)
 
-        return actions, mu, sg
+        # For convenience, mu and sg are returned
+        # with the same dimension as actions
+        mu = np.tile(mu,(n,1))
+        sg = np.tile(sg,(n,1))
+
+        return ac, mu, sg
 
     # Train networks
     def train_networks(self):
@@ -189,16 +192,17 @@ class pbo:
         print('#   Generation #'+str(gen), end=end)
 
     # Store transitions into buffer
-    def store_transition(self, obs, act, acc, rwd, mu, sg):
+    def store_transition(self, obs, act, acc, rwd, mu, sg, n):
 
         # Fill buffers
-        self.obs[self.idx] = obs
-        self.act[self.idx] = act
-        self.acc[self.idx] = acc
-        self.rwd[self.idx] = rwd
-        self.mu [self.idx] = mu
-        self.sg [self.idx] = sg
-        self.idx          += 1
+        for cpu in range(n):
+            self.obs[self.idx] = obs[cpu]
+            self.act[self.idx] = act[cpu]
+            self.acc[self.idx] = acc[cpu]
+            self.rwd[self.idx] = rwd[cpu]
+            self.mu [self.idx] = mu [cpu]
+            self.sg [self.idx] = sg [cpu]
+            self.idx          += 1
 
     # Store learning data
     def store_learning_data(self, gen, ep, bst_rwd, bst_acc, data):

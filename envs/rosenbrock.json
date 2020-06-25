@@ -1,9 +1,10 @@
 {
     "env_name": "rosenbrock",
-    "pdf": "es",
+    "pdf": "cma-full",
     "n_gen": 150,
     "n_ind": 6,
-    "n_avg": 20,
+    "n_avg": 10,
+    "n_cpu": 6,
     "lr": 5.0e-3,
     "mu_arch": [2,2],
     "sg_arch": [2,2],
