@@ -1,6 +1,6 @@
 # Generic imports
-import numpy as np
-from   math  import cos, sqrt
+import numpy as     np
+from   math  import cos, sqrt, pi
 
 ###############################################
 ### Environment for griewank function
@@ -36,7 +36,7 @@ class griewank():
         conv_actions    = self.n_params*[None]
         x_scale         = 0.5*(self.x_max - self.x_min)
         y_scale         = 0.5*(self.y_max - self.y_min)
-        conv_actions[0] = x_scale*actions[0]
+        conv_actions[0] = x_scale*actions[0] + pi
         conv_actions[1] = y_scale*actions[1]
 
         return conv_actions

@@ -1,6 +1,6 @@
 {
     "env_name": "parabola",
-    "pdf": "cma-diag",
+    "pdf": "cma-full",
     "n_gen": 50,
     "n_ind": 6,
     "n_avg": 20,
@@ -10,7 +10,7 @@
     "sg_arch": [2,2],
     "mu_epochs": 64,
     "sg_epochs": 64,
-    "sg_batch": 2,
+    "sg_batch": 4,
     "grd_clip": 1.0,
     "adv_clip": true
 }

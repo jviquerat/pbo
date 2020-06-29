@@ -27,7 +27,7 @@ file = path."/pbo_avg.dat"
 set logscale y
 set format y "10^{%L}"
 plot file u 1:3:4 w filledc lt 1 notitle, \
-     file u 1:2  smooth csplines w l ls 1 t "reward"
+     file u 1:2   w l ls 1 t "reward"
 
 # Reset formats for the remaining plots
 #set format y     
