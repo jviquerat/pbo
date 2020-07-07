@@ -7,7 +7,7 @@ import multiprocessing as mp
 ###############################################
 ### A wrapper class for parallel environments
 class par_envs:
-    def __init__(self, env_name, n_cpu):
+    def __init__(self, env_name, n_cpu, path):
 
         # Init pipes and processes
         self.n_cpu   = n_cpu
@@ -20,7 +20,8 @@ class par_envs:
             name           = str(cpu)
             process = mp.Process(target = worker,
                                  name   = name,
-                                 args   = (env_name, name, c_pipe, p_pipe))
+                                 args   = (env_name, name,
+                                           c_pipe, p_pipe, path))
 
             self.p_pipes.append(p_pipe)
             self.proc.append(process)
@@ -37,7 +38,7 @@ class par_envs:
 
         # Send
         for pipe in range(n):
-            self.p_pipes[pipe].send(('observe', None))
+            self.p_pipes[pipe].send(('observe',None,None))
 
         # Receive
         results = np.array([])
@@ -52,7 +53,7 @@ class par_envs:
     def get_dims(self):
 
         # Send
-        self.p_pipes[0].send(('get_dims',None))
+        self.p_pipes[0].send(('get_dims',None,None))
 
         # Receive
         n_params = self.p_pipes[0].recv()
@@ -67,11 +68,11 @@ class par_envs:
             p.join()
 
     # Take one step in all environments
-    def step(self, actions, n):
+    def step(self, actions, n, ep):
 
         # Send
         for pipe in range(n):
-            self.p_pipes[pipe].send(('step', actions[pipe]))
+            self.p_pipes[pipe].send(('step', actions[pipe], ep+pipe))
 
         # Receive
         rwd = np.array([])
@@ -87,27 +88,27 @@ class par_envs:
         return rwd, acc
 
 # Target function for process
-def worker(env_name, name, pipe, p_pipe):
+def worker(env_name, name, pipe, p_pipe, path):
 
     # Build environment
     sys.path.append(os.path.join(sys.path[0],'envs'))
     module    = __import__(env_name)
     env_build = getattr(module, env_name)
-    env       = env_build()
+    env       = env_build(path)
     p_pipe.close()
 
     # Execute tasks
     try:
         while True:
             # Receive command
-            command, data = pipe.recv()
+            command, data, ep = pipe.recv()
 
             # Execute command
             if command == 'observe':
                 obs = env.observe()
                 pipe.send(obs)
             if command == 'step':
-                rwd, acc = env.step(data)
+                rwd, acc = env.step(data, ep)
                 pipe.send((rwd, acc))
             if (command == 'get_dims'):
                 n_params = env.n_params

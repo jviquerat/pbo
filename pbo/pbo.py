@@ -1,9 +1,8 @@
 # Generic imports
-import gym
 import numpy as np
 
 # Custom imports
-from agent import *
+from pbo.agent import *
 
 ###############################################
 ### Class pbo

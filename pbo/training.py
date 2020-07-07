@@ -2,8 +2,8 @@
 import numpy as np
 
 # Custom imports
-from pbo      import *
-from par_envs import *
+from pbo.pbo      import *
+from pbo.par_envs import *
 
 ########################
 # Process training
@@ -16,7 +16,7 @@ def launch_training(params, path, run):
         exit()
 
     # Declare environment and agent
-    env      = par_envs(params.env_name, params.n_cpu)
+    env      = par_envs(params.env_name, params.n_cpu, path)
     n_params = env.n_params
     agent    = pbo(params, n_params)
 
@@ -45,7 +45,7 @@ def launch_training(params, path, run):
             n            = n_loop[i]
             obs          = env.observe(n)
             act, mu, sig = agent.get_actions(obs, n)
-            rwd, acc     = env.step(act, n)
+            rwd, acc     = env.step(act, n, ep)
             agent.store_transition(obs, act, acc, rwd, mu, sig, n)
 
             # Store a few things
@@ -66,8 +66,11 @@ def launch_training(params, path, run):
         # Store for future file printing
         agent.store_learning_data(gen, ep, bst_rwd, bst_acc, data)
 
-    # Write to files
-    agent.write_learning_data(path, run)
+        # Write to files
+        agent.write_learning_data(path, run)
+
+        # Printings
+        print('#   Best rwd '+str(bst_rwd))
 
     # Close environments
     env.close()
