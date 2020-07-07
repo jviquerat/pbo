@@ -14,8 +14,8 @@ def solve(shape, path, ep):
     start_time = time.time()
 
     # Domain size
-    x_min       =-2.0
-    x_max       = 5.0
+    x_min       =-5.0
+    x_max       = 10.0
     y_min       =-2.0
     y_max       = 2.0
 
@@ -24,7 +24,7 @@ def solve(shape, path, ep):
     # u_lbm corresponds to max velocity
     Re_lbm      = 10.0
     u_lbm       = 0.1
-    L_lbm       = 50
+    L_lbm       = 100
 
     # Deduce other parameters
     Cs          = 1.0/math.sqrt(3.0)

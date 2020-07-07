@@ -63,7 +63,7 @@ class shape_opt():
         # Convert action to coordinates and add obstacles to problem
         for i in range(self.n_mv_pts):
             pt       = self.mv_pts[i]
-            acc[i,:] = self.geom_transform(act[i,:], pt)
+            acc[i,:] = self.geom_transform(np.clip(act[i,:], -1.0, 1.0), pt)
 
         return acc
 
@@ -85,11 +85,11 @@ class shape_opt():
 
     ### Compute forward geometrical transformation for actions
     ### (u,v,w) assumed in [-1,1]**3
-    def geom_transform(self, acc, pt):
+    def geom_transform(self, act, pt):
 
-        u = acc[0]
-        v = acc[1]
-        w = acc[2]
+        u = act[0]
+        v = act[1]
+        w = act[2]
 
         radius = self.min_rad + 0.5*(self.max_rad-self.min_rad)*(u+1.0)
         dangle = (360.0/float(self.shape.n_control_pts))

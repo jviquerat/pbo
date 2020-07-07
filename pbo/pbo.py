@@ -109,14 +109,22 @@ class pbo:
         if (self.pdf == 'cma-diag'):
             pdf = tfd.MultivariateNormalDiag(mu, sg)
         if (self.pdf == 'cma-full'):
-            diag = sg[0:self.act_dim]
+            # Main component
+            idx  = 0
+            diag = sg[idx:idx+self.act_dim]
+            idx += self.act_dim
             scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
-            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
-            diag = sg[self.act_dim:]
-            out  = tf.linalg.set_diag(out,diag,k=-1)
-            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
 
+            # Extra-diagonal components
+            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
+            for dg in range(self.act_dim-1):
+                diag = sg[idx:idx+self.act_dim-(dg+1)]
+                idx += self.act_dim-(dg+1)
+                out  = tf.linalg.set_diag(out,diag,k=-(dg+1))
+            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
             cov  = tf.math.multiply(scl, out)
+
+            # Final distribution
             pdf  = tfd.MultivariateNormalTriL(mu, cov)
 
         # Draw actions
@@ -183,12 +191,12 @@ class pbo:
         return [ls_mu, ls_sg, nrm_mu, nrm_sg, lr_mu, lr_sg]
 
     # Printings
-    def print_generation(self, gen):
+    def print_generation(self, gen, rwd):
 
         # Print
         if (gen == self.n_gen-1): end = '\n'
         if (gen != self.n_gen-1): end = '\r'
-        print('#   Generation #'+str(gen), end=end)
+        print('#   Generation #'+str(gen)+', best reward '+str(rwd), end=end)
 
     # Store transitions into buffer
     def store_transition(self, obs, act, acc, rwd, mu, sg, n):
@@ -346,14 +354,22 @@ class pbo:
             pdf = tfd.MultivariateNormalDiag(mu[0], sg[0])
             log = pdf.log_prob(act)
         if (self.pdf == 'cma-full'):
-            diag = sg[0,0:self.act_dim]
+            # Main component
+            idx  = 0
+            diag = sg[0,idx:idx+self.act_dim]
+            idx += self.act_dim
             scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
-            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
-            diag = sg[0,self.act_dim:]
-            out  = tf.linalg.set_diag(out,diag,k=-1)
-            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
 
+            # Extra-diagonal components
+            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
+            for dg in range(self.act_dim-1):
+                diag = sg[0,idx:idx+self.act_dim-(dg+1)]
+                idx += self.act_dim-(dg+1)
+                out  = tf.linalg.set_diag(out,diag,k=-(dg+1))
+            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
             cov  = tf.math.multiply(scl, out)
+
+            # Final distribution
             pdf  = tfd.MultivariateNormalTriL(mu[0], cov)
             log  = pdf.log_prob(act)
 

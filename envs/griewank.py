@@ -7,7 +7,7 @@ from   math  import cos, sqrt, pi
 class griewank():
 
     ### Create object
-    def __init__(self):
+    def __init__(self, path):
 
         # Fill structure
         self.name     = 'griewank'
@@ -42,7 +42,7 @@ class griewank():
         return conv_actions
 
     ### Take one step
-    def step(self, actions):
+    def step(self, actions, ep):
 
         # Take action and compute reward
         conv_actions = self.convert_actions(actions)

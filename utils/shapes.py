@@ -189,7 +189,7 @@ class Shape:
                     dpi=200)
         plt.close(plt.gcf())
         plt.cla()
-        trim_white(filename)
+        #trim_white(filename)
 
     ### ************************************************
     ### Write csv

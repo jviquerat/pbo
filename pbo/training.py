@@ -28,9 +28,6 @@ def launch_training(params, path, run):
     # Loop over generations
     for gen in range(params.n_gen):
 
-        # Printings
-        agent.print_generation(gen)
-
         # Handle n_cpu < n_ind
         size = params.n_ind//params.n_cpu
         rest = params.n_ind%params.n_cpu
@@ -70,7 +67,7 @@ def launch_training(params, path, run):
         agent.write_learning_data(path, run)
 
         # Printings
-        print('#   Best rwd '+str(bst_rwd))
+        agent.print_generation(gen, bst_rwd)
 
     # Close environments
     env.close()
