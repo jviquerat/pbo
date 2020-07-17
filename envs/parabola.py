@@ -21,7 +21,7 @@ class parabola():
     ### Actual function
     def function(self, x, y):
 
-        return -(x**2 + y**2)
+        return -((x-2.0)**2 + (y-2.0)**2)
 
     ### Provide observation
     def observe(self):
@@ -36,8 +36,8 @@ class parabola():
         conv_actions    = self.n_params*[None]
         x_scale         = 0.5*(self.x_max - self.x_min)
         y_scale         = 0.5*(self.y_max - self.y_min)
-        conv_actions[0] = x_scale*actions[0] + 3.0
-        conv_actions[1] = y_scale*actions[1] + 3.0
+        conv_actions[0] = x_scale*actions[0]
+        conv_actions[1] = y_scale*actions[1]
 
         return conv_actions
 

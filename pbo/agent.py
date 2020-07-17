@@ -36,6 +36,9 @@ class nn(Model):
                               activation = last))
 
         # Define optimizer
+        #self.opt = tf.optimizers.Adam(lr       = lr,
+        #                              clipnorm = grd_clip)
+
         self.opt = tf.optimizers.Adam(lr       = lr,
                                       clipnorm = grd_clip)
 
@@ -69,13 +72,19 @@ class nn_cma(Model):
 
         # Diagonal terms, always positive
         self.net.append(Dense(dim,
+                              kernel_initializer=Orthogonal(gain=1.0),
+                              activation = 'tanh'))
+        self.net.append(Dense(dim,
                               kernel_initializer=Orthogonal(gain=0.01),
                               activation = 'softplus'))
 
         # Extra-diagonal terms, possibly negative
         self.net.append(Dense(int(dim*(dim-1)/2),
+                              kernel_initializer=Orthogonal(gain=1.0),
+                              activation = 'tanh'))
+        self.net.append(Dense(int(dim*(dim-1)/2),
                               kernel_initializer=Orthogonal(gain=0.01),
-                              activation = 'linear'))
+                              activation = 'softsign'))
 
         # Define optimizer
         self.opt = tf.optimizers.Adam(lr       = lr,
@@ -90,11 +99,13 @@ class nn_cma(Model):
 
         # Compute output
         depth = len(self.net)
-        for layer in range(depth-2):
+        for layer in range(depth-4):
             x = self.net[layer](x)
 
-        y = self.net[depth-2](x)
-        z = self.net[depth-1](x)
+        y = self.net[depth-4](x)
+        y = self.net[depth-3](y)
+        z = self.net[depth-2](x)
+        z = self.net[depth-1](z)
         x = tf.concat([y,z],axis=1)
 
         return x

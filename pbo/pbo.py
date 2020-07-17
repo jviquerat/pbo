@@ -109,23 +109,9 @@ class pbo:
         if (self.pdf == 'cma-diag'):
             pdf = tfd.MultivariateNormalDiag(mu, sg)
         if (self.pdf == 'cma-full'):
-            # Main component
-            idx  = 0
-            diag = sg[idx:idx+self.act_dim]
-            idx += self.act_dim
-            scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
-
-            # Extra-diagonal components
-            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
-            for dg in range(self.act_dim-1):
-                diag = sg[idx:idx+self.act_dim-(dg+1)]
-                idx += self.act_dim-(dg+1)
-                out  = tf.linalg.set_diag(out,diag,k=-(dg+1))
-            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
-            cov  = tf.math.multiply(scl, out)
-
-            # Final distribution
-            pdf  = tfd.MultivariateNormalTriL(mu, cov)
+            cov = self.get_cov(sg)
+            scl = tf.linalg.cholesky(cov)
+            pdf = tfd.MultivariateNormalTriL(mu, scl)
 
         # Draw actions
         ac = pdf.sample(n)
@@ -354,27 +340,36 @@ class pbo:
             pdf = tfd.MultivariateNormalDiag(mu[0], sg[0])
             log = pdf.log_prob(act)
         if (self.pdf == 'cma-full'):
-            # Main component
-            idx  = 0
-            diag = sg[0,idx:idx+self.act_dim]
-            idx += self.act_dim
-            scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
-
-            # Extra-diagonal components
-            out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
-            for dg in range(self.act_dim-1):
-                diag = sg[0,idx:idx+self.act_dim-(dg+1)]
-                idx += self.act_dim-(dg+1)
-                out  = tf.linalg.set_diag(out,diag,k=-(dg+1))
-            out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
-            cov  = tf.math.multiply(scl, out)
-
-            # Final distribution
-            pdf  = tfd.MultivariateNormalTriL(mu[0], cov)
-            log  = pdf.log_prob(act)
+            cov = self.get_cov(sg[0])
+            scl = tf.linalg.cholesky(cov)
+            pdf = tfd.MultivariateNormalTriL(mu[0], scl)
+            log = pdf.log_prob(act)
 
         # Compute loss
         s    = tf.multiply(adv, log)
         loss =-tf.reduce_mean(s)
 
         return loss
+
+    # Compute covariance matrix
+    @tf.function
+    def get_cov(self, sg):
+
+        # Main components
+        idx  = 0
+        diag = sg[idx:idx+self.act_dim]
+        idx += self.act_dim
+        scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
+
+        # Extra-diagonal components
+        out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
+        for dg in range(self.act_dim-1):
+            diag = sg[idx:idx+self.act_dim-(dg+1)]
+            diag = tf.clip_by_value(diag,-1.0,1.0)
+            idx += self.act_dim-(dg+1)
+            out  = tf.linalg.set_diag(out,diag,k=-(dg+1))
+            out  = tf.linalg.set_diag(out,diag,k= (dg+1))
+        out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
+        cov  = tf.multiply(scl, out)
+
+        return cov

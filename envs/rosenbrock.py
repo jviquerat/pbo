@@ -14,8 +14,8 @@ class rosenbrock():
         self.n_params = 2
         self.x_min    =-2.0
         self.x_max    = 2.0
-        self.y_min    =-1.0
-        self.y_max    = 3.0
+        self.y_min    =-2.0
+        self.y_max    = 2.0
         self.obs      = np.ones(1)
 
     ### Actual function
