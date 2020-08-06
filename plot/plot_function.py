@@ -2,8 +2,8 @@ from pylab import *
 from matplotlib import ticker
 
 def f(x,y):
-    return x**2 + y**2
-    #return (1.0-x)**2 + 100.0*(y-x**2)**2
+    #return x**2 + y**2
+    return (1.0-x)**2 + 100.0*(-y-x**2)**2
 
 xmin =-2.0
 xmax = 2.0

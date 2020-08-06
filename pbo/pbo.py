@@ -1,4 +1,5 @@
 # Generic imports
+import math
 import numpy as np
 
 # Custom imports
@@ -36,48 +37,49 @@ class pbo:
                              'tanh',
                              self.grd_clip,
                              self.lr)
-
-        # Build sigma network
-        if (self.pdf in ['es', 'cma-diag']):
-            self.net_sg = nn(params.sg_arch,
+        self.net_sg     = nn(params.sg_arch,
                              self.mu_dim,
                              'softplus',
                              self.grd_clip,
                              self.lr)
+
+        # Build sigma network
         if (self.pdf in ['cma-full']):
-            self.net_sg = nn_cma(params.sg_arch,
-                                 self.mu_dim,
-                                 self.grd_clip,
-                                 self.lr)
+            self.net_cm = nn(params.sg_arch,
+                             int(self.mu_dim*(self.mu_dim-1)/2),
+                             'tanh',
+                             self.grd_clip,
+                             self.lr)
 
         # Init network parameters
         dummy = self.net_mu(tf.ones([1,self.obs_dim]))
         dummy = self.net_sg(tf.ones([1,self.obs_dim]))
+        dummy = self.net_cm(tf.ones([1,self.obs_dim]))
 
         # Storing buffers
         self.idx     = 0
 
         self.gen     = np.zeros( self.size,                 dtype=np.int32)
         self.ep      = np.zeros( self.size,                 dtype=np.int32)
-        self.obs     = np.zeros((self.size,  self.obs_dim), dtype=np.float32)
-        self.act     = np.zeros((self.size,  self.act_dim), dtype=np.float32)
-        self.acc     = np.zeros((self.size,  self.act_dim), dtype=np.float32)
-        self.adv     = np.zeros( self.size,                 dtype=np.float32)
-        self.rwd     = np.zeros( self.size,                 dtype=np.float32)
-        self.mu      = np.zeros((self.size,  self.mu_dim),  dtype=np.float32)
-        self.sg      = np.zeros((self.size,  self.sg_dim),  dtype=np.float32)
+        self.obs     = np.zeros((self.size,  self.obs_dim), dtype=np.float64)
+        self.act     = np.zeros((self.size,  self.act_dim), dtype=np.float64)
+        self.acc     = np.zeros((self.size,  self.act_dim), dtype=np.float64)
+        self.adv     = np.zeros( self.size,                 dtype=np.float64)
+        self.rwd     = np.zeros( self.size,                 dtype=np.float64)
+        self.mu      = np.zeros((self.size,  self.mu_dim),  dtype=np.float64)
+        self.sg      = np.zeros((self.size,  self.sg_dim),  dtype=np.float64)
 
-        self.bst_acc = np.zeros((self.n_gen, self.act_dim), dtype=np.float32)
-        self.bst_rwd = np.zeros( self.n_gen,                dtype=np.float32)
+        self.bst_acc = np.zeros((self.n_gen, self.act_dim), dtype=np.float64)
+        self.bst_rwd = np.zeros( self.n_gen,                dtype=np.float64)
         self.bst_gen = np.zeros( self.n_gen,                dtype=np.int32)
         self.bst_ep  = np.zeros( self.n_gen,                dtype=np.int32)
 
-        self.ls_mu   = np.zeros( self.n_gen,                dtype=np.float32)
-        self.ls_sg   = np.zeros( self.n_gen,                dtype=np.float32)
-        self.nrm_mu  = np.zeros( self.n_gen,                dtype=np.float32)
-        self.nrm_sg  = np.zeros( self.n_gen,                dtype=np.float32)
-        self.lr_mu   = np.zeros( self.n_gen,                dtype=np.float32)
-        self.lr_sg   = np.zeros( self.n_gen,                dtype=np.float32)
+        self.ls_mu   = np.zeros( self.n_gen,                dtype=np.float64)
+        self.ls_sg   = np.zeros( self.n_gen,                dtype=np.float64)
+        self.nrm_mu  = np.zeros( self.n_gen,                dtype=np.float64)
+        self.nrm_sg  = np.zeros( self.n_gen,                dtype=np.float64)
+        self.lr_mu   = np.zeros( self.n_gen,                dtype=np.float64)
+        self.lr_sg   = np.zeros( self.n_gen,                dtype=np.float64)
 
     # Get batch of observations, actions and rewards
     def get_batch(self, n_batch):
@@ -94,21 +96,26 @@ class pbo:
     def get_actions(self, state, n):
 
         # Predict mu
-        x  = tf.convert_to_tensor([state[0]], dtype=tf.float32)
+        x  = tf.convert_to_tensor([state[0]], dtype=tf.float64)
         mu = self.net_mu.call(x)
         mu = np.asarray(mu)[0]
 
         # Predict sigma
-        x  = tf.convert_to_tensor([state[0]], dtype=tf.float32)
+        x  = tf.convert_to_tensor([state[0]], dtype=tf.float64)
         sg = self.net_sg.call(x)
-        sg = np.asarray(sg)[0]
 
         # Define pdf
         if (self.pdf == 'es'):
+            sg  = np.asarray(sg)[0]
             pdf = tfd.Normal(mu, sg)
         if (self.pdf == 'cma-diag'):
+            sg  = np.asarray(sg)[0]
             pdf = tfd.MultivariateNormalDiag(mu, sg)
         if (self.pdf == 'cma-full'):
+            x   = tf.convert_to_tensor([state[0]], dtype=tf.float64)
+            cm  = self.net_cm.call(x)
+            sg  = tf.concat([sg,cm],axis=1)
+            sg  = np.asarray(sg)[0]
             cov = self.get_cov(sg)
             scl = tf.linalg.cholesky(cov)
             pdf = tfd.MultivariateNormalTriL(mu, scl)
@@ -128,8 +135,31 @@ class pbo:
     def train_networks(self):
 
         # Get learning rates
-        lr_mu = self.net_mu.opt._decayed_lr(tf.float32)
-        lr_sg = self.net_sg.opt._decayed_lr(tf.float32)
+        #lr_mu = self.net_mu.opt._decayed_lr(tf.float64)
+        #lr_sg = self.net_sg.opt._decayed_lr(tf.float64)
+        lr_mu = 1.0
+        lr_sg = 1.0
+
+        #print(lr_mu, lr_sg)
+
+        # Mu network uses standard batch size
+        obs, act, adv, mu, sg = self.get_batch(1)
+
+        # Update mu network
+        for epoch in range(self.mu_epochs):
+
+            # Randomize batch
+            bff_size = self.n_ind
+            btc_size = self.n_ind
+            btc      = self.prep_data(obs, act, adv, mu, sg,
+                                      bff_size, btc_size, 1)
+            btc_obs  = btc[0]
+            btc_act  = btc[1]
+            btc_adv  = btc[2]
+            btc_mu   = btc[3]
+            btc_sg   = btc[4]
+
+            ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act, btc_sg)
 
         # Sigma network uses larger batch to simulate rank-mu update
         n_batch               = self.sg_batch
@@ -145,7 +175,7 @@ class pbo:
             bff_size = self.n_ind*n_batch
             btc_size = self.n_ind
             btc      = self.prep_data(obs, act, adv, mu, sg,
-                                      bff_size, btc_size)
+                                      bff_size, btc_size, n_batch)
             btc_obs  = btc[0]
             btc_act  = btc[1]
             btc_adv  = btc[2]
@@ -154,24 +184,22 @@ class pbo:
 
             ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act, btc_mu)
 
-        # Mu network uses standard batch size
-        obs, act, adv, mu, sg = self.get_batch(1)
-
-        # Update mu network
-        for epoch in range(self.mu_epochs):
+        # Update sigma network
+        for epoch in range(self.sg_epochs):
 
             # Randomize batch
-            bff_size = self.n_ind
+            bff_size = self.n_ind*n_batch
             btc_size = self.n_ind
             btc      = self.prep_data(obs, act, adv, mu, sg,
-                                      bff_size, btc_size)
+                                      bff_size, btc_size, n_batch)
             btc_obs  = btc[0]
             btc_act  = btc[1]
             btc_adv  = btc[2]
             btc_mu   = btc[3]
             btc_sg   = btc[4]
 
-            ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act, btc_sg)
+            if (self.pdf == 'cma-full'):
+                self.train_cm(btc_obs, btc_adv, btc_act, btc_mu)
 
         # Return infos
         return [ls_mu, ls_sg, nrm_mu, nrm_sg, lr_mu, lr_sg]
@@ -258,7 +286,7 @@ class pbo:
         self.adv[start:end] = adv
 
     # Prepare data for training
-    def prep_data(self, obs, act, adv, mu, sg, bff_size, btc_size):
+    def prep_data(self, obs, act, adv, mu, sg, bff_size, btc_size, n):
 
         # Randomize batch
         sample = np.arange(bff_size)
@@ -273,15 +301,15 @@ class pbo:
         btc_sg  = [sg [i] for i in sample]
 
         # Reshape
-        btc_obs = tf.reshape(tf.cast(btc_obs, tf.float32),
+        btc_obs = tf.reshape(tf.cast(btc_obs, tf.float64),
                              [btc_size, self.obs_dim])
-        btc_act = tf.reshape(tf.cast(btc_act, tf.float32),
+        btc_act = tf.reshape(tf.cast(btc_act, tf.float64),
                              [btc_size, self.act_dim])
-        btc_adv = tf.reshape(tf.cast(btc_adv, tf.float32),
+        btc_adv = tf.reshape(tf.cast(btc_adv, tf.float64),
                              [btc_size])
-        btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float32),
+        btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float64),
                              [btc_size, self.mu_dim])
-        btc_sg  = tf.reshape(tf.cast(btc_sg,  tf.float32),
+        btc_sg  = tf.reshape(tf.cast(btc_sg,  tf.float64),
                              [btc_size, self.sg_dim])
 
         return btc_obs, btc_act, btc_adv, btc_mu, btc_sg
@@ -295,7 +323,10 @@ class pbo:
             tape.watch(var)
 
             # Network forward pass
-            sg = tf.convert_to_tensor(self.net_sg.call(obs))
+            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
+            if (self.pdf == 'cma-full'):
+                cm = tf.convert_to_tensor(self.net_cm.call(obs), tf.float64)
+                sg = tf.concat([sg,cm],axis=1)
 
             # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg)
@@ -304,6 +335,30 @@ class pbo:
         grads = tape.gradient(loss, var)
         norm  = tf.linalg.global_norm(grads)
         self.net_sg.opt.apply_gradients(zip(grads, var))
+
+        return loss, norm
+
+    # Train cm network
+    @tf.function
+    def train_cm(self, obs, adv, act, mu):
+        var = self.net_cm.trainable_variables
+        with tf.GradientTape() as tape:
+            # Watch network variables
+            tape.watch(var)
+
+            # Network forward pass
+            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
+            if (self.pdf == 'cma-full'):
+                cm = tf.convert_to_tensor(self.net_cm.call(obs), tf.float64)
+                sg = tf.concat([sg,cm],axis=1)
+
+            # Compute loss
+            loss = self.get_loss(obs, adv, act, mu, sg)
+
+        # Apply gradients
+        grads = tape.gradient(loss, var)
+        norm  = tf.linalg.global_norm(grads)
+        self.net_cm.opt.apply_gradients(zip(grads, var))
 
         return loss, norm
 
@@ -316,7 +371,7 @@ class pbo:
             tape.watch(var)
 
             # Network forward pass
-            mu = tf.convert_to_tensor(self.net_mu.call(obs))
+            mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
             # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg)
@@ -329,7 +384,7 @@ class pbo:
         return loss, norm
 
     # Compute loss
-    @tf.function
+    #@tf.function
     def get_loss(self, obs, adv, act, mu, sg):
 
         # Compute pdf
@@ -352,24 +407,57 @@ class pbo:
         return loss
 
     # Compute covariance matrix
-    @tf.function
+    #@tf.function
     def get_cov(self, sg):
 
-        # Main components
-        idx  = 0
-        diag = sg[idx:idx+self.act_dim]
-        idx += self.act_dim
-        scl  = tf.tensordot(diag,tf.transpose(diag),axes=0)
+        # ### Build covariance directly ###
+        # # Main components
+        # idx  = 0
+        # diag = sg[idx:idx+self.act_dim]
+        # idx += self.act_dim
+        # scl  = tf.zeros([self.act_dim, self.act_dim], tf.float64)
+        # scl  = tf.linalg.set_diag(scl, diag, k=0)
 
-        # Extra-diagonal components
-        out  = tf.zeros([self.act_dim, self.act_dim], tf.float32)
+        # # Extra-diagonal components
+        # out  = tf.zeros([self.act_dim, self.act_dim], tf.float64)
+        # for dg in range(self.act_dim-1):
+        #     diag = sg[idx:idx+self.act_dim-(dg+1)]
+        #     idx += self.act_dim-(dg+1)
+        #     out  = tf.linalg.set_diag(out, diag, k=-(dg+1))
+        # out  = tf.linalg.set_diag(out, np.ones(self.act_dim), k=0)
+        # out  = tf.matmul(out, tf.transpose(out))
+        # cov  = tf.matmul(scl, out)
+        # cov  = tf.matmul(cov, scl)
+
+        ### Use correlative angle matrix ###
+        # Extract sigmas and thetas
+        sigmas = sg[:self.act_dim]
+        thetas = (sg[self.act_dim:] + 1.0)*math.pi/2.0
+
+        # Build initial theta matrix
+        t   = tf.zeros([self.act_dim,self.act_dim], tf.float64)
+        cor = tf.ones( [self.act_dim,self.act_dim], tf.float64)
+        idx = 0
         for dg in range(self.act_dim-1):
-            diag = sg[idx:idx+self.act_dim-(dg+1)]
-            diag = tf.clip_by_value(diag,-1.0,1.0)
+            diag = thetas[idx:idx+self.act_dim-(dg+1)]
             idx += self.act_dim-(dg+1)
-            out  = tf.linalg.set_diag(out,diag,k=-(dg+1))
-            out  = tf.linalg.set_diag(out,diag,k= (dg+1))
-        out  = tf.linalg.set_diag(out,np.ones(self.act_dim),k=0)
-        cov  = tf.multiply(scl, out)
+            t    = tf.linalg.set_diag(t,          diag,  k=-(dg+1))
+        cor = tf.multiply(cor, tf.cos(t))
+
+        # Roll and compute additional terms
+        for roll in range(self.act_dim-1):
+            vec = tf.ones([tf.shape(t)[0], 1], tf.float64)
+            vec = tf.scalar_mul(math.pi/2, vec)
+            t = tf.concat([vec, t[:, :self.act_dim-1]], axis=1)
+            for dg in range(self.act_dim-1):
+                zero = np.zeros(self.act_dim-(dg+1))
+                t   = tf.linalg.set_diag(t, zero, k=dg+1)
+            cor = tf.multiply(cor, tf.sin(t))
+
+        cor = tf.matmul(cor, tf.transpose(cor))
+        scl = tf.zeros([self.act_dim, self.act_dim], tf.float64)
+        scl = tf.linalg.set_diag(scl, sigmas, k=0)
+        cov  = tf.matmul(scl, cor)
+        cov  = tf.matmul(cov, scl)
 
         return cov
