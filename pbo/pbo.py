@@ -9,88 +9,121 @@ from pbo.agent import *
 ### Class pbo
 ### A PBO agent for optimization
 class pbo:
-    def __init__(self, params, act_dim):
+    def __init__(self, params, act_dim, obs_dim):
 
         # Initialize from arguments
         self.pdf        = params.pdf
         self.act_dim    = act_dim
-        self.obs_dim    = 1
+        self.obs_dim    = obs_dim
         self.mu_dim     = act_dim
-        self.sg_dim = self.act_dim
-        if (self.pdf == 'cma-full'):
-            self.sg_dim = int(self.act_dim*(self.act_dim + 1)/2)
+        self.sg_dim     = act_dim
+        self.cr_dim     = int(self.act_dim*(self.act_dim - 1)/2)
         self.n_gen      = params.n_gen
         self.n_ind      = params.n_ind
         self.size       = self.n_gen*self.n_ind
         self.n_cpu      = params.n_cpu
 
+        self.mu_gen     = params.mu_gen
+        self.sg_gen     = params.sg_gen
+        self.cr_gen     = params.cr_gen
+        self.mu_batch   = params.mu_batch
         self.sg_batch   = params.sg_batch
-        self.lr         = params.lr
+        self.cr_batch   = params.cr_batch
+        self.lr_mu      = params.lr_mu
+        self.lr_sg      = params.lr_sg
+        self.lr_cr      = params.lr_cr
         self.mu_epochs  = params.mu_epochs
         self.sg_epochs  = params.sg_epochs
+        self.cr_epochs  = params.cr_epochs
         self.adv_clip   = params.adv_clip
         self.grd_clip   = params.grd_clip
+        self.adv_decay  = params.adv_decay
 
         # Build mu network
         self.net_mu     = nn(params.mu_arch,
                              self.mu_dim,
                              'tanh',
-                             self.grd_clip,
-                             self.lr)
-        self.net_sg     = nn(params.sg_arch,
-                             self.mu_dim,
-                             'softplus',
-                             self.grd_clip,
-                             self.lr)
-
-        # Build sigma network
-        if (self.pdf in ['cma-full']):
-            self.net_cm = nn(params.sg_arch,
-                             int(self.mu_dim*(self.mu_dim-1)/2),
                              'tanh',
                              self.grd_clip,
-                             self.lr)
+                             self.lr_mu)
+        self.net_sg     = nn(params.sg_arch,
+                             self.sg_dim,
+                             'tanh',
+                             'sigmoid',
+                             self.grd_clip,
+                             self.lr_sg)
+        self.net_cr     = nn(params.cr_arch,
+                             self.cr_dim,
+                             'tanh',
+                             'sigmoid',
+                             self.grd_clip,
+                             self.lr_cr)
 
         # Init network parameters
         dummy = self.net_mu(tf.ones([1,self.obs_dim]))
         dummy = self.net_sg(tf.ones([1,self.obs_dim]))
-        dummy = self.net_cm(tf.ones([1,self.obs_dim]))
+        dummy = self.net_cr(tf.ones([1,self.obs_dim]))
 
         # Storing buffers
         self.idx     = 0
 
-        self.gen     = np.zeros( self.size,                 dtype=np.int32)
-        self.ep      = np.zeros( self.size,                 dtype=np.int32)
-        self.obs     = np.zeros((self.size,  self.obs_dim), dtype=np.float64)
-        self.act     = np.zeros((self.size,  self.act_dim), dtype=np.float64)
-        self.acc     = np.zeros((self.size,  self.act_dim), dtype=np.float64)
-        self.adv     = np.zeros( self.size,                 dtype=np.float64)
-        self.rwd     = np.zeros( self.size,                 dtype=np.float64)
-        self.mu      = np.zeros((self.size,  self.mu_dim),  dtype=np.float64)
-        self.sg      = np.zeros((self.size,  self.sg_dim),  dtype=np.float64)
+        self.gen     = np.zeros( self.size,               dtype=np.int32)
+        self.ep      = np.zeros( self.size,               dtype=np.int32)
+        self.obs     = np.zeros((self.size, self.obs_dim),dtype=np.float64)
+        self.act     = np.zeros((self.size, self.act_dim),dtype=np.float64)
+        self.acc     = np.zeros((self.size, self.act_dim),dtype=np.float64)
+        self.adv     = np.zeros( self.size,               dtype=np.float64)
+        self.rwd     = np.zeros( self.size,               dtype=np.float64)
+        self.mu      = np.zeros((self.size, self.mu_dim), dtype=np.float64)
+        self.sg      = np.zeros((self.size, self.sg_dim), dtype=np.float64)
+        self.cr      = np.zeros((self.size, self.cr_dim), dtype=np.float64)
 
-        self.bst_acc = np.zeros((self.n_gen, self.act_dim), dtype=np.float64)
-        self.bst_rwd = np.zeros( self.n_gen,                dtype=np.float64)
-        self.bst_gen = np.zeros( self.n_gen,                dtype=np.int32)
-        self.bst_ep  = np.zeros( self.n_gen,                dtype=np.int32)
+        self.bst_acc = np.zeros((self.n_gen,self.act_dim),dtype=np.float64)
+        self.bst_rwd = np.zeros( self.n_gen,              dtype=np.float64)
+        self.bst_gen = np.zeros( self.n_gen,              dtype=np.int32)
+        self.bst_ep  = np.zeros( self.n_gen,              dtype=np.int32)
 
-        self.ls_mu   = np.zeros( self.n_gen,                dtype=np.float64)
-        self.ls_sg   = np.zeros( self.n_gen,                dtype=np.float64)
-        self.nrm_mu  = np.zeros( self.n_gen,                dtype=np.float64)
-        self.nrm_sg  = np.zeros( self.n_gen,                dtype=np.float64)
-        self.lr_mu   = np.zeros( self.n_gen,                dtype=np.float64)
-        self.lr_sg   = np.zeros( self.n_gen,                dtype=np.float64)
+        self.ls_mu   = np.zeros( self.n_gen,              dtype=np.float64)
+        self.ls_sg   = np.zeros( self.n_gen,              dtype=np.float64)
+        self.ls_cr   = np.zeros( self.n_gen,              dtype=np.float64)
+        self.nrm_mu  = np.zeros( self.n_gen,              dtype=np.float64)
+        self.nrm_sg  = np.zeros( self.n_gen,              dtype=np.float64)
+        self.nrm_cr  = np.zeros( self.n_gen,              dtype=np.float64)
+        self.lr_mu   = np.zeros( self.n_gen,              dtype=np.float64)
+        self.lr_sg   = np.zeros( self.n_gen,              dtype=np.float64)
+        self.lr_cr   = np.zeros( self.n_gen,              dtype=np.float64)
 
-    # Get batch of observations, actions and rewards
-    def get_batch(self, n_batch):
+    # Get data history
+    def get_history(self, n_gen):
 
-        # Starting and ending indices based on the required size of batch
-        start = max(0,self.idx - n_batch*self.n_ind)
-        end   = self.idx
+        # Starting and ending indices based on the required nb of generations
+        start     = max(0,self.idx - n_gen*self.n_ind)
+        end       = self.idx
+        buff_size = end - start
+        n_gen     = buff_size//self.n_ind
 
-        return self.obs[start:end], self.act[start:end], \
-               self.adv[start:end], self.mu [start:end], \
-               self.sg [start:end]
+        # Randomize batch
+        sample = np.arange(start, end)
+        np.random.shuffle(sample)
+
+        # Draw elements as lists
+        buff_obs = [self.obs[i] for i in sample]
+        buff_act = [self.act[i] for i in sample]
+        buff_adv = [self.adv[i] for i in sample]
+        buff_mu  = [self.mu [i] for i in sample]
+        buff_sg  = [self.sg [i] for i in sample]
+        buff_cr  = [self.cr [i] for i in sample]
+
+        # Reshape
+        buff_obs = tf.reshape(buff_obs, [buff_size, self.obs_dim])
+        buff_act = tf.reshape(buff_act, [buff_size, self.act_dim])
+        buff_adv = tf.reshape(buff_adv, [buff_size])
+        buff_mu  = tf.reshape(buff_mu,  [buff_size, self.mu_dim])
+        buff_sg  = tf.reshape(buff_sg,  [buff_size, self.sg_dim])
+        buff_cr  = tf.reshape(buff_cr,  [buff_size, self.cr_dim])
+
+        return buff_obs, buff_act, buff_adv, buff_mu, \
+               buff_sg, buff_cr, n_gen
 
     # Get actions from network
     def get_actions(self, state, n):
@@ -103,22 +136,24 @@ class pbo:
         # Predict sigma
         x  = tf.convert_to_tensor([state[0]], dtype=tf.float64)
         sg = self.net_sg.call(x)
+        sg = np.asarray(sg)[0]
+
+        # Predict correlations
+        x  = tf.convert_to_tensor([state[0]], dtype=tf.float64)
+        cr = self.net_cr.call(x)
+        cr = np.asarray(cr)[0]
 
         # Define pdf
         if (self.pdf == 'es'):
-            sg  = np.asarray(sg)[0]
             pdf = tfd.Normal(mu, sg)
         if (self.pdf == 'cma-diag'):
-            sg  = np.asarray(sg)[0]
             pdf = tfd.MultivariateNormalDiag(mu, sg)
         if (self.pdf == 'cma-full'):
-            x   = tf.convert_to_tensor([state[0]], dtype=tf.float64)
-            cm  = self.net_cm.call(x)
-            sg  = tf.concat([sg,cm],axis=1)
-            sg  = np.asarray(sg)[0]
-            cov = self.get_cov(sg)
+            cov = self.get_cov(sg, cr)
             scl = tf.linalg.cholesky(cov)
             pdf = tfd.MultivariateNormalTriL(mu, scl)
+            pdf = tfd.TransformedDistribution(distribution=pdf,
+                                              bijector=tfp.bijectors.Tanh())
 
         # Draw actions
         ac = pdf.sample(n)
@@ -128,81 +163,9 @@ class pbo:
         # with the same dimension as actions
         mu = np.tile(mu,(n,1))
         sg = np.tile(sg,(n,1))
+        cr = np.tile(cr,(n,1))
 
-        return ac, mu, sg
-
-    # Train networks
-    def train_networks(self):
-
-        # Get learning rates
-        #lr_mu = self.net_mu.opt._decayed_lr(tf.float64)
-        #lr_sg = self.net_sg.opt._decayed_lr(tf.float64)
-        lr_mu = 1.0
-        lr_sg = 1.0
-
-        #print(lr_mu, lr_sg)
-
-        # Mu network uses standard batch size
-        obs, act, adv, mu, sg = self.get_batch(1)
-
-        # Update mu network
-        for epoch in range(self.mu_epochs):
-
-            # Randomize batch
-            bff_size = self.n_ind
-            btc_size = self.n_ind
-            btc      = self.prep_data(obs, act, adv, mu, sg,
-                                      bff_size, btc_size, 1)
-            btc_obs  = btc[0]
-            btc_act  = btc[1]
-            btc_adv  = btc[2]
-            btc_mu   = btc[3]
-            btc_sg   = btc[4]
-
-            ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act, btc_sg)
-
-        # Sigma network uses larger batch to simulate rank-mu update
-        n_batch               = self.sg_batch
-        obs, act, adv, mu, sg = self.get_batch(n_batch)
-
-        # Account for insufficient batch history
-        n_batch = min(n_batch,len(obs)//self.n_ind)
-
-        # Update sigma network
-        for epoch in range(self.sg_epochs):
-
-            # Randomize batch
-            bff_size = self.n_ind*n_batch
-            btc_size = self.n_ind
-            btc      = self.prep_data(obs, act, adv, mu, sg,
-                                      bff_size, btc_size, n_batch)
-            btc_obs  = btc[0]
-            btc_act  = btc[1]
-            btc_adv  = btc[2]
-            btc_mu   = btc[3]
-            btc_sg   = btc[4]
-
-            ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act, btc_mu)
-
-        # Update sigma network
-        for epoch in range(self.sg_epochs):
-
-            # Randomize batch
-            bff_size = self.n_ind*n_batch
-            btc_size = self.n_ind
-            btc      = self.prep_data(obs, act, adv, mu, sg,
-                                      bff_size, btc_size, n_batch)
-            btc_obs  = btc[0]
-            btc_act  = btc[1]
-            btc_adv  = btc[2]
-            btc_mu   = btc[3]
-            btc_sg   = btc[4]
-
-            if (self.pdf == 'cma-full'):
-                self.train_cm(btc_obs, btc_adv, btc_act, btc_mu)
-
-        # Return infos
-        return [ls_mu, ls_sg, nrm_mu, nrm_sg, lr_mu, lr_sg]
+        return ac, mu, sg, cr
 
     # Printings
     def print_generation(self, gen, rwd):
@@ -213,7 +176,7 @@ class pbo:
         print('#   Generation #'+str(gen)+', best reward '+str(rwd), end=end)
 
     # Store transitions into buffer
-    def store_transition(self, obs, act, acc, rwd, mu, sg, n):
+    def store_transition(self, obs, act, acc, rwd, mu, sg, cr, n):
 
         # Fill buffers
         for cpu in range(n):
@@ -223,6 +186,7 @@ class pbo:
             self.rwd[self.idx] = rwd[cpu]
             self.mu [self.idx] = mu [cpu]
             self.sg [self.idx] = sg [cpu]
+            self.cr [self.idx] = cr [cpu]
             self.idx          += 1
 
     # Store learning data
@@ -235,8 +199,10 @@ class pbo:
         self.bst_acc[gen] = bst_acc
         self.ls_mu  [gen] = data[0]
         self.ls_sg  [gen] = data[1]
-        self.nrm_mu [gen] = data[2]
-        self.nrm_sg [gen] = data[3]
+        self.ls_cr  [gen] = data[2]
+        self.nrm_mu [gen] = data[3]
+        self.nrm_sg [gen] = data[4]
+        self.nrm_cr [gen] = data[5]
 
     # Write learning data
     def write_learning_data(self, path, run):
@@ -249,7 +215,8 @@ class pbo:
                               np.reshape(self.rwd*(-1.0), (-1,1)),
                               self.acc,
                               self.mu,
-                              self.sg]),
+                              self.sg,
+                              self.cr]),
                    fmt='%.5e')
 
         # Data for future averaging
@@ -259,15 +226,18 @@ class pbo:
                               np.reshape(self.bst_rwd*(-1.0), (-1,1)),
                               np.reshape(self.ls_mu,          (-1,1)),
                               np.reshape(self.ls_sg,          (-1,1)),
+                              np.reshape(self.ls_cr,          (-1,1)),
                               np.reshape(self.nrm_mu,         (-1,1)),
                               np.reshape(self.nrm_sg,         (-1,1)),
-                              np.reshape(self.lr_mu,          (-1,1)),
-                              np.reshape(self.lr_sg,          (-1,1)),
+                              np.reshape(self.nrm_cr,         (-1,1)),
                               self.bst_acc]),
                    fmt='%.5e')
 
     # Compute advantages
     def compute_advantages(self):
+
+        # Decay
+        self.adv[:] *= self.adv_decay
 
         # Start and end indices of last generation
         start   = max(0,self.idx - self.n_ind)
@@ -285,96 +255,125 @@ class pbo:
         # Store
         self.adv[start:end] = adv
 
-    # Prepare data for training
-    def prep_data(self, obs, act, adv, mu, sg, bff_size, btc_size, n):
+    # Train networks
+    def train_networks(self):
 
-        # Randomize batch
-        sample = np.arange(bff_size)
-        np.random.shuffle(sample)
-        sample = sample[:btc_size]
+        # Train
+        ls_sg, nrm_sg = self.train_loop_sg()
+        if (self.pdf == 'cma-full'):
+            ls_cr, nrm_cr = self.train_loop_cr()
+        else:
+            ls_cr  = 1.0
+            nrm_cr = 1.0
+        ls_mu, nrm_mu = self.train_loop_mu()
 
-        # Draw elements as lists
-        btc_obs = [obs[i] for i in sample]
-        btc_act = [act[i] for i in sample]
-        btc_adv = [adv[i] for i in sample]
-        btc_mu  = [mu [i] for i in sample]
-        btc_sg  = [sg [i] for i in sample]
+        # Return infos
+        return [ ls_mu,  ls_sg,  ls_cr,
+                nrm_mu, nrm_sg, nrm_cr]
 
-        # Reshape
-        btc_obs = tf.reshape(tf.cast(btc_obs, tf.float64),
-                             [btc_size, self.obs_dim])
-        btc_act = tf.reshape(tf.cast(btc_act, tf.float64),
-                             [btc_size, self.act_dim])
-        btc_adv = tf.reshape(tf.cast(btc_adv, tf.float64),
-                             [btc_size])
-        btc_mu  = tf.reshape(tf.cast(btc_mu,  tf.float64),
-                             [btc_size, self.mu_dim])
-        btc_sg  = tf.reshape(tf.cast(btc_sg,  tf.float64),
-                             [btc_size, self.sg_dim])
+    # Train loop for mu
+    def train_loop_mu(self):
 
-        return btc_obs, btc_act, btc_adv, btc_mu, btc_sg
+        # Update sigma network
+        for epoch in range(self.mu_epochs):
 
-    # Train sg network
-    @tf.function
-    def train_sg(self, obs, adv, act, mu):
-        var = self.net_sg.trainable_variables
-        with tf.GradientTape() as tape:
-            # Watch network variables
-            tape.watch(var)
+            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.mu_gen)
+            done = False
+            btc  = 0
 
-            # Network forward pass
-            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
-            if (self.pdf == 'cma-full'):
-                cm = tf.convert_to_tensor(self.net_cm.call(obs), tf.float64)
-                sg = tf.concat([sg,cm],axis=1)
+            # Visit all available history
+            while not done:
 
-            # Compute loss
-            loss = self.get_loss(obs, adv, act, mu, sg)
+                start    = btc*self.mu_batch*self.n_ind
+                end      = min((btc+1)*self.mu_batch*self.n_ind,len(obs))
+                btc     += 1
+                if (end == len(obs)): done = True
+                btc_obs  = obs[start:end]
+                btc_act  = act[start:end]
+                btc_adv  = adv[start:end]
+                btc_mu   = mu[start:end]
+                btc_sg   = sg[start:end]
+                btc_cr   = cr[start:end]
 
-        # Apply gradients
-        grads = tape.gradient(loss, var)
-        norm  = tf.linalg.global_norm(grads)
-        self.net_sg.opt.apply_gradients(zip(grads, var))
+                ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act,
+                                              btc_mu,  btc_sg,  btc_cr)
 
-        return loss, norm
+        return ls_mu, nrm_mu
 
-    # Train cm network
-    @tf.function
-    def train_cm(self, obs, adv, act, mu):
-        var = self.net_cm.trainable_variables
-        with tf.GradientTape() as tape:
-            # Watch network variables
-            tape.watch(var)
+    # Train loop for sg
+    def train_loop_sg(self):
 
-            # Network forward pass
-            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
-            if (self.pdf == 'cma-full'):
-                cm = tf.convert_to_tensor(self.net_cm.call(obs), tf.float64)
-                sg = tf.concat([sg,cm],axis=1)
+        # Update sigma network
+        for epoch in range(self.sg_epochs):
 
-            # Compute loss
-            loss = self.get_loss(obs, adv, act, mu, sg)
+            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.sg_gen)
+            done = False
+            btc  = 0
 
-        # Apply gradients
-        grads = tape.gradient(loss, var)
-        norm  = tf.linalg.global_norm(grads)
-        self.net_cm.opt.apply_gradients(zip(grads, var))
+            # Visit all available history
+            while not done:
 
-        return loss, norm
+                start    = btc*self.sg_batch*self.n_ind
+                end      = min((btc+1)*self.sg_batch*self.n_ind,len(obs))
+                btc     += 1
+                if (end == len(obs)): done = True
+
+                btc_obs  = obs[start:end]
+                btc_act  = act[start:end]
+                btc_adv  = adv[start:end]
+                btc_mu   = mu[start:end]
+                btc_sg   = sg[start:end]
+                btc_cr   = cr[start:end]
+
+                ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act,
+                                              btc_mu,  btc_sg,  btc_cr)
+
+        return ls_sg, nrm_sg
+
+    # Train loop for cr
+    def train_loop_cr(self):
+
+        # Update sigma network
+        for epoch in range(self.cr_epochs):
+
+            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.cr_gen)
+            done = False
+            btc  = 0
+
+            # Visit all available history
+            while not done:
+
+                start    = btc*self.cr_batch*self.n_ind
+                end      = min((btc+1)*self.cr_batch*self.n_ind,len(obs))
+                btc     += 1
+                if (end == len(obs)): done = True
+                btc_obs  = obs[start:end]
+                btc_act  = act[start:end]
+                btc_adv  = adv[start:end]
+                btc_mu   = mu[start:end]
+                btc_sg   = sg[start:end]
+                btc_cr   = cr[start:end]
+
+                ls_cr, nrm_cr = self.train_cr(btc_obs, btc_adv, btc_act,
+                                              btc_mu,  btc_sg,  btc_cr)
+
+        return ls_cr, nrm_cr
 
     # Train mu network
     @tf.function
-    def train_mu(self, obs, adv, act, sg):
+    def train_mu(self, obs, adv, act, mu, sg, cr):
         var = self.net_mu.trainable_variables
         with tf.GradientTape() as tape:
             # Watch network variables
             tape.watch(var)
 
             # Network forward pass
+            cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
+            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
             mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
             # Compute loss
-            loss = self.get_loss(obs, adv, act, mu, sg)
+            loss = self.get_loss(obs, adv, act, mu, sg, cr)
 
         # Apply gradients
         grads = tape.gradient(loss, var)
@@ -383,9 +382,54 @@ class pbo:
 
         return loss, norm
 
+    # Train sg network
+    @tf.function
+    def train_sg(self, obs, adv, act, mu, sg, cr):
+        var = self.net_sg.trainable_variables
+        with tf.GradientTape() as tape:
+            # Watch network variables
+            tape.watch(var)
+
+            # Network forward pass
+            mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
+            cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
+            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
+
+            # Compute loss
+            loss = self.get_loss(obs, adv, act, mu, sg, cr)
+
+        # Apply gradients
+        grads = tape.gradient(loss, var)
+        norm  = tf.linalg.global_norm(grads)
+        self.net_sg.opt.apply_gradients(zip(grads, var))
+
+        return loss, norm
+
+    # Train cr network
+    @tf.function
+    def train_cr(self, obs, adv, act, mu, sg, cr):
+        var = self.net_cr.trainable_variables
+        with tf.GradientTape() as tape:
+            # Watch network variables
+            tape.watch(var)
+
+            # Network forward pass
+            mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
+            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
+            cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
+
+            # Compute loss
+            loss = self.get_loss(obs, adv, act, mu, sg, cr)
+
+        # Apply gradients
+        grads = tape.gradient(loss, var)
+        norm  = tf.linalg.global_norm(grads)
+        self.net_cr.opt.apply_gradients(zip(grads, var))
+
+        return loss, norm
+
     # Compute loss
-    #@tf.function
-    def get_loss(self, obs, adv, act, mu, sg):
+    def get_loss(self, obs, adv, act, mu, sg, cr):
 
         # Compute pdf
         if (self.pdf == 'es'):
@@ -395,54 +439,37 @@ class pbo:
             pdf = tfd.MultivariateNormalDiag(mu[0], sg[0])
             log = pdf.log_prob(act)
         if (self.pdf == 'cma-full'):
-            cov = self.get_cov(sg[0])
+            cov = self.get_cov(sg[0], cr[0])
             scl = tf.linalg.cholesky(cov)
             pdf = tfd.MultivariateNormalTriL(mu[0], scl)
+            pdf = tfd.TransformedDistribution(distribution=pdf,
+                                              bijector=tfp.bijectors.Tanh())
             log = pdf.log_prob(act)
 
         # Compute loss
-        s    = tf.multiply(adv, log)
-        loss =-tf.reduce_mean(s)
+        n_srt = tf.math.count_nonzero(adv)
+        s     = tf.multiply(adv, log)
+        loss  =-tf.reduce_sum(s)/tf.cast(n_srt, tf.float64)
 
         return loss
 
     # Compute covariance matrix
-    #@tf.function
-    def get_cov(self, sg):
-
-        # ### Build covariance directly ###
-        # # Main components
-        # idx  = 0
-        # diag = sg[idx:idx+self.act_dim]
-        # idx += self.act_dim
-        # scl  = tf.zeros([self.act_dim, self.act_dim], tf.float64)
-        # scl  = tf.linalg.set_diag(scl, diag, k=0)
-
-        # # Extra-diagonal components
-        # out  = tf.zeros([self.act_dim, self.act_dim], tf.float64)
-        # for dg in range(self.act_dim-1):
-        #     diag = sg[idx:idx+self.act_dim-(dg+1)]
-        #     idx += self.act_dim-(dg+1)
-        #     out  = tf.linalg.set_diag(out, diag, k=-(dg+1))
-        # out  = tf.linalg.set_diag(out, np.ones(self.act_dim), k=0)
-        # out  = tf.matmul(out, tf.transpose(out))
-        # cov  = tf.matmul(scl, out)
-        # cov  = tf.matmul(cov, scl)
+    def get_cov(self, sg, cr):
 
         ### Use correlative angle matrix ###
         # Extract sigmas and thetas
-        sigmas = sg[:self.act_dim]
-        thetas = (sg[self.act_dim:] + 1.0)*math.pi/2.0
+        sigmas = 0.25*sg
+        thetas = cr*math.pi
 
         # Build initial theta matrix
-        t   = tf.zeros([self.act_dim,self.act_dim], tf.float64)
-        cor = tf.ones( [self.act_dim,self.act_dim], tf.float64)
+        t   = tf.ones([self.act_dim,self.act_dim], tf.float64)*math.pi/2.0
+        t   = tf.linalg.set_diag(t, np.zeros(self.act_dim), k=0)
         idx = 0
         for dg in range(self.act_dim-1):
             diag = thetas[idx:idx+self.act_dim-(dg+1)]
             idx += self.act_dim-(dg+1)
-            t    = tf.linalg.set_diag(t,          diag,  k=-(dg+1))
-        cor = tf.multiply(cor, tf.cos(t))
+            t    = tf.linalg.set_diag(t, diag, k=-(dg+1))
+        cor = tf.cos(t)
 
         # Roll and compute additional terms
         for roll in range(self.act_dim-1):

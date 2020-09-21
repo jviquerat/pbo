@@ -17,12 +17,13 @@ def launch_training(params, path, run):
 
     # Declare environment and agent
     env      = par_envs(params.env_name, params.n_cpu, path)
-    n_params = env.n_params
-    agent    = pbo(params, n_params)
+    act_size = env.act_size
+    obs_size = env.obs_size
+    agent    = pbo(params, act_size, obs_size)
 
     # Initialize parameters
     ep      = 0
-    bst_acc = np.zeros(n_params)
+    bst_acc = np.zeros(act_size)
     bst_rwd = -1.0e10
 
     # Loop over generations
@@ -39,11 +40,11 @@ def launch_training(params, path, run):
         for i in range(size):
 
             # Make one iteration over all processes
-            n            = n_loop[i]
-            obs          = env.observe(n)
-            act, mu, sig = agent.get_actions(obs, n)
-            rwd, acc     = env.step(act, n, ep)
-            agent.store_transition(obs, act, acc, rwd, mu, sig, n)
+            n                = n_loop[i]
+            obs              = env.observe(n)
+            act, mu, sig, cr = agent.get_actions(obs, n)
+            rwd, acc         = env.step(act, n, ep)
+            agent.store_transition(obs, act, acc, rwd, mu, sig, cr, n)
 
             # Store a few things
             for ind in range(n):

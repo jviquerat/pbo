@@ -32,7 +32,7 @@ with open(json_file, "r") as f:
 
 # Storage arrays
 res_path   = 'results'
-n_data     = 5
+n_data     = 7
 gen        = np.zeros((              params.n_gen),         dtype=int)
 data       = np.zeros((params.n_avg, params.n_gen, n_data), dtype=float)
 avg_data   = np.zeros((              params.n_gen, n_data), dtype=float)

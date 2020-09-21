@@ -31,7 +31,7 @@ class par_envs:
             c_pipe.close()
 
         # Handle nb of parameters
-        self.n_params = int(self.get_dims())
+        self.act_size, self.obs_size = self.get_dims()
 
     # Reset all environments
     def observe(self, n):
@@ -45,7 +45,7 @@ class par_envs:
         for pipe in range(n):
             results = np.append(results, self.p_pipes[pipe].recv())
 
-        results = np.reshape(results, (n,1))
+        results = np.reshape(results, (n,self.obs_size))
 
         return results
 
@@ -56,9 +56,9 @@ class par_envs:
         self.p_pipes[0].send(('get_dims',None,None))
 
         # Receive
-        n_params = self.p_pipes[0].recv()
+        act_size, obs_size = self.p_pipes[0].recv()
 
-        return n_params
+        return act_size, obs_size
 
     # Close
     def close(self):
@@ -82,7 +82,7 @@ class par_envs:
             rwd   = np.append(rwd, r)
             acc   = np.append(acc, a)
 
-        acc = np.reshape(acc, (n,self.n_params))
+        acc = np.reshape(acc, (n,self.act_size))
         rwd = np.reshape(rwd, (n,1))
 
         return rwd, acc
@@ -111,8 +111,9 @@ def worker(env_name, name, pipe, p_pipe, path):
                 rwd, acc = env.step(data, ep)
                 pipe.send((rwd, acc))
             if (command == 'get_dims'):
-                n_params = env.n_params
-                pipe.send((n_params))
+                act_size = int(env.act_size)
+                obs_size = int(env.obs_size)
+                pipe.send((act_size, obs_size))
             if command == 'close':
                 pipe.send(None)
                 break

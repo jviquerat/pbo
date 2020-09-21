@@ -1,0 +1,22 @@
+{
+    "env_name": "sphere_5d",
+    "pdf": "cma-full",
+    "n_gen": 200,
+    "n_ind": 8,
+    "n_avg": 3,
+    "n_cpu": 8,
+    "lr_mu": 1.0e-3,
+    "lr_sg": 1.0e-3,
+    "lr_cr": 1.0e-3,
+    "mu_arch": [],
+    "sg_arch": [],
+    "cr_arch": [],
+    "mu_epochs": 64,
+    "sg_epochs": 64,
+    "cr_epochs": 64,
+    "mu_batch": 1,
+    "sg_batch": 4,
+    "cr_batch": 16,
+    "grd_clip": 1.0,
+    "adv_clip": true
+}
