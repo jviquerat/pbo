@@ -48,13 +48,13 @@ class pbo:
                              self.lr_mu)
         self.net_sg     = nn(params.sg_arch,
                              self.sg_dim,
-                             'tanh',
+                             'sigmoid',
                              'sigmoid',
                              self.grd_clip,
                              self.lr_sg)
         self.net_cr     = nn(params.cr_arch,
                              self.cr_dim,
-                             'tanh',
+                             'sigmoid',
                              'sigmoid',
                              self.grd_clip,
                              self.lr_cr)
@@ -246,7 +246,7 @@ class pbo:
         # Compute normalized advantage
         avg_rwd = np.mean(self.rwd[start:end])
         std_rwd = np.std( self.rwd[start:end])
-        adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-7)
+        adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-12)
 
         # Clip advantages if required
         if (self.adv_clip):
@@ -260,11 +260,7 @@ class pbo:
 
         # Train
         ls_sg, nrm_sg = self.train_loop_sg()
-        if (self.pdf == 'cma-full'):
-            ls_cr, nrm_cr = self.train_loop_cr()
-        else:
-            ls_cr  = 1.0
-            nrm_cr = 1.0
+        ls_cr, nrm_cr = self.train_loop_cr()
         ls_mu, nrm_mu = self.train_loop_mu()
 
         # Return infos
@@ -333,6 +329,9 @@ class pbo:
     # Train loop for cr
     def train_loop_cr(self):
 
+        # If correlations are not used
+        if (self.pdf != 'cma-full'): return 1.0, 1.0
+
         # Update sigma network
         for epoch in range(self.cr_epochs):
 
@@ -391,9 +390,9 @@ class pbo:
             tape.watch(var)
 
             # Network forward pass
-            mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
             cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
             sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
+            mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
             # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg, cr)
@@ -414,9 +413,9 @@ class pbo:
             tape.watch(var)
 
             # Network forward pass
-            mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
-            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
             cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
+            sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
+            mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
             # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg, cr)
@@ -470,6 +469,11 @@ class pbo:
             idx += self.act_dim-(dg+1)
             t    = tf.linalg.set_diag(t, diag, k=-(dg+1))
         cor = tf.cos(t)
+
+        # Correct upper part to exact zero
+        for dg in range(self.act_dim-1):
+            size = self.act_dim-(dg+1)
+            cor = tf.linalg.set_diag(cor, np.zeros(size), k=(dg+1))
 
         # Roll and compute additional terms
         for roll in range(self.act_dim-1):

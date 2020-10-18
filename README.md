@@ -1,38 +1,19 @@
 # pbo
 
-PBO (policy-based optimization) is a degenerate policy gradient algorithm used for black-box optimization. It shares common traits with both DRL (deep reinforcement learning) policy gradient methods, and ES (evolution strategies) techniques. In this repository, we present a parallel PBO algorithm with possible covariance matrix adaptation. This feature is directly adapted from the CMA-ES algorithm, using ideas from https://arxiv.org/abs/1810.02541 (although the point of view on how to adapt the method differs a bit).
+PBO (policy-based optimization) is a degenerate policy gradient algorithm used for black-box optimization. It shares common traits with both DRL (deep reinforcement learning) policy gradient methods, and ES (evolution strategies) techniques. In this repository, we present a parallel PBO algorithm with covariance matrix adaptation. This feature is directly adapted from the CMA-ES algorithm, using ideas from https://arxiv.org/abs/1810.02541 (although the point of view on how to adapt the method differs). The performance level of the method as presented here is comparable with that of CMA-ES.
 
-## Method
+## Parabola function
 
-To complete
-
-Below, you can find optimization examples on simple analytical functions. All cases are averaged over 20 runs.
-
-## Parabola
-
-We first consider the minimization on a parabola defined in [-5,5]x[-5,5]. Here is the course of a single run, generation after generation:
+We first consider the minimization on a parabola defined in [-5,5]x[-5,5]. Here is the course of a single run, generation after generation, with a starting point in [2.5,2.5]:
 
 <p align="center">
-  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/85527883-917ceb80-b60b-11ea-92a6-a75155a07135.gif">
-</p>
-
-The PBO algorithm can use either standard es method (```es```), diagonal (```cma-diag```) or full (```cma-full```) covariance matrix adaptation. Here, although the given function is isotropic, covariance matrix adaptation shows a great improvement over standard ES. The results of all three methods are given below (left plot), along with a test using ```cma-diag``` various number of cpus (right plot):
-
-<p align="center">
-  <img width="400" alt="" src="https://user-images.githubusercontent.com/44053700/85555656-6b187980-b626-11ea-98f5-83374647aeb2.png"> &nbsp; &nbsp;
-  <img width="400" alt="" src="https://user-images.githubusercontent.com/44053700/85729231-e9455080-b6f8-11ea-9320-7022f932bc0d.png">
+  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/96258559-7a984580-0fbc-11eb-8231-c0436ec53685.gif">
 </p>
 
 ## Rosenbrock function
 
-The Rosenbrock function is usually defined in [-2,2]x[-1,3]. It contains a very narrow valley, with a minimum set in [1,1]. Given the shape of the valley, ```es``` and ```cma-diag``` versions cannot efficiently reach the minimum. Here is a ```cma-full``` run:
+The Rosenbrock function is here defined in [-2,2]x[-2,2]. It contains a very narrow valley, with a minimum in [1,1]. The shape of the valley makes it a hard optimization problem for many algorithms. Here is the course of a single run, generation after generation, with a starting point in [0.0,-1.0]:
 
 <p align="center">
-  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/85410633-a0aa5d80-b567-11ea-9383-42906cb0cab6.gif">
-</p>
-
-Below is a comparison of the three methods. As can be seen, ```es``` and ```cma-diag``` are not flexible enough to find the minimum hidden in the valley:
-
-<p align="center">
-  <img width="400" alt="" src="https://user-images.githubusercontent.com/44053700/85560877-61dddb80-b62b-11ea-9d51-f82ab75cd853.png">
+  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/96370627-c97de080-115e-11eb-88fd-2338069a20df.gif">
 </p>

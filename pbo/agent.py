@@ -11,10 +11,10 @@ import tensorflow_probability        as     tfp
 import tensorflow_addons             as     tfa
 from   tensorflow.keras              import Model
 from   tensorflow.keras.layers       import Dense
-from   tensorflow.keras.initializers import Orthogonal
+from   tensorflow.keras.initializers import Orthogonal, Constant
 
 # Define alias
-tf.keras.backend.set_floatx('float32')
+tf.keras.backend.set_floatx('float64')
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 tfd = tfp.distributions
 

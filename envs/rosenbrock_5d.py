@@ -2,51 +2,31 @@
 import math
 import numpy as np
 
-###############################################
-### Environment for rosenbrock 5D function
-class rosenbrock_5d():
+# Custom imports
+from envs.base_env import base_env
 
-    # Create object
+###############################################
+### Environment for rosenbrock_5d function
+class rosenbrock_5d(base_env):
+
+    ### Create object
     def __init__(self, path):
 
         # Fill structure
         self.name     = 'rosenbrock_5d'
         self.act_size = 5
         self.obs_size = self.act_size
-        self.x_min    =-2.0
-        self.x_max    = 2.0
         self.obs      = np.zeros(self.obs_size)
+        self.x_min    = np.ones(self.act_size)*(-2.0)
+        self.x_max    = np.ones(self.act_size)*( 2.0)
+        self.x_0      = np.ones(self.act_size)*( 0.0)
 
     ### Actual function
     def function(self, x):
 
+        # Compute function value in x
         val = 0.0
         for i in range(len(x)-1):
             val += 100.0*(x[i+1]-x[i]**2)**2 + (1.0-x[i])**2
 
         return -val
-
-    ### Provide observation
-    def observe(self):
-
-        # Always return the same observation
-        return self.obs
-
-    ### Convert actions
-    def convert_actions(self, actions):
-
-        # Convert actions
-        conv_actions    = self.act_size*[None]
-        x_scale         = 0.5*(self.x_max - self.x_min)
-        conv_actions[:] = x_scale*actions[:]
-
-        return conv_actions
-
-    ### Take one step
-    def step(self, actions, ep):
-
-        # Take action and compute reward
-        conv_actions = self.convert_actions(actions)
-        reward       = self.function(conv_actions)
-
-        return reward, conv_actions

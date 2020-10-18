@@ -6,8 +6,8 @@ n_gen    = 150
 n_pop    = 6
 x_min    =-2
 x_max    = 2
-y_min    =-1
-y_max    = 3
+y_min    =-2
+y_max    = 2
 file     = ARG1
 
 # Set styles
