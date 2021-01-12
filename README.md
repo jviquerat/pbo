@@ -15,5 +15,5 @@ We first consider the minimization on a parabola defined in [-5,5]x[-5,5]. Here 
 The Rosenbrock function is here defined in [-2,2]x[-2,2]. It contains a very narrow valley, with a minimum in [1,1]. The shape of the valley makes it a hard optimization problem for many algorithms. Here is the course of a single run, generation after generation, with a starting point in [0.0,-1.0]:
 
 <p align="center">
-  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/96370627-c97de080-115e-11eb-88fd-2338069a20df.gif">
+  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/104337105-67cad980-54f5-11eb-9c43-2ff2bc2624d4.gif">
 </p>
