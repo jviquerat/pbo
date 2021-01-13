@@ -21,7 +21,7 @@ tfd = tfp.distributions
 ###############################################
 ### Neural network for mu and sg prediction
 class nn(Model):
-    def __init__(self, arch, dim, act, last, grd_clip, lr):
+    def __init__(self, arch, dim, act, last, lr):
         super(nn, self).__init__()
 
         # Initialize network as empty list
@@ -41,10 +41,7 @@ class nn(Model):
                               dtype='float64'))
 
         # Define optimizer
-        self.opt = tk.optimizers.Adam(lr       = lr,
-                                      clipnorm = grd_clip)
-
-
+        self.opt = tk.optimizers.Adam(lr = lr)
 
     # Network forward pass
     @tf.function

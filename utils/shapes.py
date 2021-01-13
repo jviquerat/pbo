@@ -3,7 +3,6 @@ import os
 import os.path
 import PIL
 import math
-import time
 import scipy.special
 import matplotlib
 import numpy             as np
@@ -35,7 +34,7 @@ class Shape:
         self.size_y         = 0.0
         self.radius         = radius
         self.edgy           = edgy
-        self.output_dir     = output_dir+'/'
+        self.output_dir     = output_dir
 
         if (not os.path.exists(self.output_dir)): os.makedirs(self.output_dir)
 
@@ -56,6 +55,10 @@ class Shape:
     ### ************************************************
     ### Build shape
     def build(self):
+
+        # Center set of points
+        center = np.mean(self.control_pts, axis=0)
+        self.control_pts -= center
 
         # Sort points counter-clockwise
         control_pts, radius, edgy  = ccw_sort(self.control_pts,
@@ -100,11 +103,11 @@ class Shape:
             dist = compute_distance(pt_c, pt_p)
             smpl = math.ceil(self.n_sampling_pts*math.sqrt(dist))
 
-            local_curve = generate_bezier_curve(pt_c,          pt_p,
-                                                delta[crt,:],  delta[nxt,:],
-                                                delta_b[crt,:],delta_b[nxt,:],
-                                                radii[crt,1],  radii[nxt,0],
-                                                edgy[crt],     edgy[nxt],
+            local_curve = generate_bezier_curve(pt_c,           pt_p,
+                                                delta[crt,:],   delta[nxt,:],
+                                                delta_b[crt,:], delta_b[nxt,:],
+                                                radii[crt,1],   radii[nxt,0],
+                                                edgy[crt],      edgy[nxt],
                                                 smpl)
             local_curves.append(local_curve)
 
@@ -114,23 +117,25 @@ class Shape:
         self.curve_pts = np.column_stack((x,y,z))
         self.curve_pts = remove_duplicate_pts(self.curve_pts)
 
-        # Compute size
-        self.compute_size()
+        # Center set of points
+        center            = np.mean(self.curve_pts, axis=0)
+        self.curve_pts   -= center
+        self.control_pts[:,0:2] -= center[0:2]
+
+        # Reprocess to position
+        self.control_pts[:,0:2] += self.position[0:2]
+        self.curve_pts  [:,0:2] += self.position[0:2]
 
     ### ************************************************
     ### Write image
     def generate_image(self, *args, **kwargs):
 
         # Handle optional argument
-        plot_pts       = kwargs.get('plot_pts',       True)
-        xmin           = kwargs.get('xmin',          -1.0)
-        xmax           = kwargs.get('xmax',           1.0)
-        ymin           = kwargs.get('ymin',          -1.0)
-        ymax           = kwargs.get('ymax',           1.0)
-        show_quadrants = kwargs.get('show_quadrants', True)
-        max_radius     = kwargs.get('max_radius',     1.0)
-        min_radius     = kwargs.get('min_radius',     0.2)
-        index          = kwargs.get('index',          0)
+        plot_pts = kwargs.get('plot_pts',  True)
+        xmin     = kwargs.get('xmin',     -1.0)
+        xmax     = kwargs.get('xmax',      1.0)
+        ymin     = kwargs.get('ymin',     -1.0)
+        ymax     = kwargs.get('ymax',      1.0)
 
         # Plot shape
         plt.xlim([xmin,xmax])
@@ -159,48 +164,19 @@ class Shape:
                     zorder=2,
                     alpha=0.5)
 
-        # Plot quadrants
-        if (show_quadrants):
-            for pt in range(self.n_control_pts):
-                dangle = (360.0/float(self.n_control_pts))
-                angle  = dangle*float(pt)+dangle/2.0
-                x_max  = max_radius*math.cos(math.radians(angle))
-                y_max  = max_radius*math.sin(math.radians(angle))
-                x_min  = min_radius*math.cos(math.radians(angle))
-                y_min  = min_radius*math.sin(math.radians(angle))
-                plt.plot([x_min, x_max],
-                         [y_min, y_max],
-                         color='w',
-                         linewidth=1)
-
-            circle = plt.Circle((0,0),max_radius,fill=False,color='w')
-            plt.gcf().gca().add_artist(circle)
-            circle = plt.Circle((0,0),min_radius,fill=False,color='w')
-            plt.gcf().gca().add_artist(circle)
-
-        # Handle output folder
-        folder = self.output_dir+'shape/'
-        if (not os.path.isdir(folder)): os.makedirs(folder)
-
         # Save image
-        filename = folder+str(index)+'.jpg'
+        filename = self.output_dir+self.name+'.png'
 
         plt.savefig(filename,
                     dpi=200)
         plt.close(plt.gcf())
         plt.cla()
-        #trim_white(filename)
+        trim_white(filename)
 
     ### ************************************************
     ### Write csv
-    def write_csv(self, index):
-
-        # Handle output folder
-        folder = self.output_dir+'csv/'
-        if (not os.path.isdir(folder)): os.makedirs(folder)
-
-        # Write csv
-        filename = folder+str(index)+'.csv'
+    def write_csv(self):
+        filename = self.output_dir+self.name+'.csv'
         with open(filename,'w') as file:
             # Write header
             file.write('{} {}\n'.format(self.n_control_pts,
@@ -268,13 +244,6 @@ class Shape:
             self.control_pts[pts_list[i],0] = deformation[i,0]
             self.control_pts[pts_list[i],1] = deformation[i,1]
             self.edgy[pts_list[i]]          = deformation[i,2]
-
-    ### ************************************************
-    ### Compute shape size
-    def compute_size(self):
-
-        self.size_x = max(self.control_pts[:,0]) - min(self.control_pts[:,0])
-        self.size_y = max(self.control_pts[:,1]) - min(self.control_pts[:,1])
 
 ### End of class Shape
 ### ************************************************
@@ -436,13 +405,12 @@ def generate_bezier_curve(p1,       p2,
 ### ************************************************
 ### Crop white background from image
 def trim_white(filename):
-    pass
-    # im   = PIL.Image.open(filename)
-    # bg   = PIL.Image.new(im.mode, im.size, (255,255,255))
-    # diff = PIL.ImageChops.difference(im, bg)
-    # bbox = diff.getbbox()
-    # cp   = im.crop(bbox)
-    # cp.save(filename)
+    im   = PIL.Image.open(filename)
+    bg   = PIL.Image.new(im.mode, im.size, (255,255,255))
+    diff = PIL.ImageChops.difference(im, bg)
+    bbox = diff.getbbox()
+    cp   = im.crop(bbox)
+    cp.save(filename)
 
 ### ************************************************
 ### Generate shape
@@ -461,7 +429,7 @@ def generate_shape(n_pts,
 
     # Select shape type
     if (shape_type == 'cylinder'):
-        radius         = (1.0/math.sqrt(2))*np.ones((n_pts))
+        radius         = 0.5*np.ones((n_pts))
         edgy           = 1.0*np.ones((n_pts))
         ctrl_pts       = generate_cylinder_pts(n_pts)
         ctrl_pts[:,:] *= shape_size
@@ -473,8 +441,8 @@ def generate_shape(n_pts,
         ctrl_pts[:,:] *= shape_size
 
     if (shape_type == 'random'):
-        radius         = np.random.uniform(low=0.0, high=1.0, size=n_pts)
-        edgy           = np.random.uniform(low=0.0, high=1.0, size=n_pts)
+        radius         = np.random.uniform(low=0.8, high=1.0, size=n_pts)
+        edgy           = np.random.uniform(low=0.45, high=0.55, size=n_pts)
         ctrl_pts       = np.random.rand(n_pts,2)
         ctrl_pts[:,:] *= shape_size
 
@@ -489,5 +457,10 @@ def generate_shape(n_pts,
                   output_dir)
 
     shape.build()
+    shape.generate_image(xmin =-shape_size,
+                         xmax = shape_size,
+                         ymin =-shape_size,
+                         ymax = shape_size)
+    shape.write_csv()
 
     return shape

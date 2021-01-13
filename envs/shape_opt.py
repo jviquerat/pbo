@@ -2,8 +2,10 @@
 import numpy as np
 
 # Custom imports
-from utils.shapes import *
-from utils.solver import *
+from utils.shapes  import *
+from utils.solver  import *
+from envs.base_env import *
+
 
 ###############################################
 ### Environment for shape optimization
@@ -63,7 +65,7 @@ class shape_opt():
         # Convert action to coordinates and add obstacles to problem
         for i in range(self.n_mv_pts):
             pt       = self.mv_pts[i]
-            acc[i,:] = self.geom_transform(np.clip(act[i,:], -1.0, 1.0), pt)
+            acc[i,:] = self.geom_transform(act[i,:], pt)
 
         return acc
 
@@ -80,8 +82,6 @@ class shape_opt():
                                   min_radius     = self.min_rad,
                                   max_radius     = self.max_rad,
                                   index          = ep)
-
-        return acc
 
     ### Compute forward geometrical transformation for actions
     ### (u,v,w) assumed in [-1,1]**3

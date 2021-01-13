@@ -17,9 +17,12 @@ class rosenbrock_10d(base_env):
         self.act_size = 10
         self.obs_size = self.act_size
         self.obs      = np.zeros(self.obs_size)
-        self.x_min    = np.ones(self.act_size)*(-2.0)
-        self.x_max    = np.ones(self.act_size)*( 2.0)
-        self.x_0      = np.ones(self.act_size)*( 0.0)
+        self.x_min    = np.array([-2.0,-2.0,-2.0,-2.0,-2.0,
+                                  -2.0,-2.0,-2.0,-2.0,-2.0])
+        self.x_max    = np.array([ 2.0, 2.0, 2.0, 2.0, 2.0,
+                                   2.0, 2.0, 2.0, 2.0, 2.0])
+        self.x_0      = np.array([ 0.0,-1.0,-1.0,-1.0,-1.0,
+                                  -1.0,-1.0,-1.0,-1.0,-1.0])
 
     ### Actual function
     def function(self, x):

@@ -71,6 +71,7 @@ class Buff:
                 self.obs_cv_cnt += 1
             else:
                 self.obs_cv_cnt  = 0
+                self.obs_cv      = False
 
             if (self.obs_cv_cnt > self.obs_cv_nb):
                 self.obs_cv = True

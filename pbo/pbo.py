@@ -36,7 +36,6 @@ class pbo:
         self.sg_epochs  = params.sg_epochs
         self.cr_epochs  = params.cr_epochs
         self.adv_clip   = params.adv_clip
-        self.grd_clip   = params.grd_clip
         self.adv_decay  = params.adv_decay
 
         # Build mu network
@@ -44,19 +43,16 @@ class pbo:
                              self.mu_dim,
                              'tanh',
                              'tanh',
-                             self.grd_clip,
                              self.lr_mu)
         self.net_sg     = nn(params.sg_arch,
                              self.sg_dim,
                              'sigmoid',
                              'sigmoid',
-                             self.grd_clip,
                              self.lr_sg)
         self.net_cr     = nn(params.cr_arch,
                              self.cr_dim,
                              'sigmoid',
                              'sigmoid',
-                             self.grd_clip,
                              self.lr_cr)
 
         # Init network parameters
@@ -149,11 +145,7 @@ class pbo:
         if (self.pdf == 'cma-diag'):
             pdf = tfd.MultivariateNormalDiag(mu, sg)
         if (self.pdf == 'cma-full'):
-            cov = self.get_cov(sg, cr)
-            scl = tf.linalg.cholesky(cov)
-            pdf = tfd.MultivariateNormalTriL(mu, scl)
-            pdf = tfd.TransformedDistribution(distribution=pdf,
-                                              bijector=tfp.bijectors.Tanh())
+            pdf = self.get_cov_pdf(mu, sg, cr)
 
         # Draw actions
         ac = pdf.sample(n)
@@ -438,34 +430,37 @@ class pbo:
             pdf = tfd.MultivariateNormalDiag(mu[0], sg[0])
             log = pdf.log_prob(act)
         if (self.pdf == 'cma-full'):
-            cov = self.get_cov(sg[0], cr[0])
-            scl = tf.linalg.cholesky(cov)
-            pdf = tfd.MultivariateNormalTriL(mu[0], scl)
-            pdf = tfd.TransformedDistribution(distribution=pdf,
-                                              bijector=tfp.bijectors.Tanh())
+            pdf = self.get_cov_pdf(mu[0], sg[0], cr[0])
             log = pdf.log_prob(act)
 
         # Compute loss
-        n_srt = tf.math.count_nonzero(adv)
         s     = tf.multiply(adv, log)
-        loss  =-tf.reduce_sum(s)/tf.cast(n_srt, tf.float64)
+        loss  =-tf.reduce_mean(s)
 
         return loss
+
+    # Compute full cov pdf
+    def get_cov_pdf(self, mu, sg, cr):
+        cov  = self.get_cov(sg, cr)
+        scl  = tf.linalg.cholesky(cov)
+        pdf  = tfd.MultivariateNormalTriL(mu, scl)
+
+        return pdf
 
     # Compute covariance matrix
     def get_cov(self, sg, cr):
 
         ### Use correlative angle matrix ###
         # Extract sigmas and thetas
-        sigmas = 0.25*sg
+        sigmas = 0.85*sg
         thetas = cr*math.pi
 
         # Build initial theta matrix
         t   = tf.ones([self.act_dim,self.act_dim], tf.float64)*math.pi/2.0
-        t   = tf.linalg.set_diag(t, np.zeros(self.act_dim), k=0)
+        t   = tf.linalg.set_diag(t, tf.zeros(self.act_dim, tf.float64), k=0)
         idx = 0
         for dg in range(self.act_dim-1):
-            diag = thetas[idx:idx+self.act_dim-(dg+1)]
+            diag = tf.cast(thetas[idx:idx+self.act_dim-(dg+1)], tf.float64)
             idx += self.act_dim-(dg+1)
             t    = tf.linalg.set_diag(t, diag, k=-(dg+1))
         cor = tf.cos(t)
@@ -473,22 +468,22 @@ class pbo:
         # Correct upper part to exact zero
         for dg in range(self.act_dim-1):
             size = self.act_dim-(dg+1)
-            cor = tf.linalg.set_diag(cor, np.zeros(size), k=(dg+1))
+            cor  = tf.linalg.set_diag(cor, tf.zeros(size, tf.float64), k=(dg+1))
 
         # Roll and compute additional terms
         for roll in range(self.act_dim-1):
-            vec = tf.ones([tf.shape(t)[0], 1], tf.float64)
+            vec = tf.ones([self.act_dim, 1], tf.float64)
             vec = tf.scalar_mul(math.pi/2, vec)
-            t = tf.concat([vec, t[:, :self.act_dim-1]], axis=1)
+            t   = tf.concat([vec, t[:, :self.act_dim-1]], axis=1)
             for dg in range(self.act_dim-1):
-                zero = np.zeros(self.act_dim-(dg+1))
-                t   = tf.linalg.set_diag(t, zero, k=dg+1)
+                zero = tf.zeros(self.act_dim-(dg+1), tf.float64)
+                t    = tf.linalg.set_diag(t, zero, k=dg+1)
             cor = tf.multiply(cor, tf.sin(t))
 
         cor = tf.matmul(cor, tf.transpose(cor))
         scl = tf.zeros([self.act_dim, self.act_dim], tf.float64)
         scl = tf.linalg.set_diag(scl, sigmas, k=0)
-        cov  = tf.matmul(scl, cor)
-        cov  = tf.matmul(cov, scl)
+        cov = tf.matmul(scl, cor)
+        cov = tf.matmul(cov, scl)
 
         return cov
