@@ -3,10 +3,10 @@
 ### Specific declarations
 n_gen    = 100
 n_pop    = 8
-x_min    =-0.2
-x_max    = 0.2
-y_min    =-0.2
-y_max    = 0.2
+x_min    =-0.1
+x_max    = 0.1
+y_min    =-0.1
+y_max    = 0.1
 rad      = 0.025
 file     = ARG1
 
@@ -38,8 +38,8 @@ do for [i=0:n_gen-1] {
 
        # Set objects
        set object 1 rect from -rad,-rad to rad,rad fc lt 2 front
-       set object 2 circle front at 0.0,0.0 size 0.04242 fillcolor rgb "black" lw 1
-       set object 3 circle front at 0.0,0.0 size 0.14242 fillcolor rgb "black" lw 1
+       set object 2 rect from -0.045,-0.045 to 0.045,0.045 fs empty border rgb "black" lw 1
+       set object 3 rect from -0.08,-0.08 to 0.08,0.08 fs empty border rgb "black" lw 1
 
        # Plot gif
        plot file every ::0::end-cor u 4:5 w p t "prev gen" @REG_PTS, \

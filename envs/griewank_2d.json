@@ -1,6 +1,7 @@
 {
     "env_name": "griewank_2d",
     "pdf": "cma-full",
+    "avg_type": "log",
     "n_gen": 50,
     "n_ind": 6,
     "n_avg": 5,

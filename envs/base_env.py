@@ -32,9 +32,9 @@ class base_env():
         x_m           = self.x_0   - self.x_min
 
         for i in range(self.act_size):
-            if (actions[i] > 0.0):
+            if (actions[i] >= 0.0):
                 conv_actions[i] = self.x_0[i] + x_p[i]*actions[i]
-            if (actions[i] < 0.0):
+            if (actions[i] <  0.0):
                 conv_actions[i] = self.x_0[i] + x_m[i]*actions[i]
 
         return conv_actions

@@ -48,8 +48,7 @@ if __name__ == '__main__':
     t         = time.localtime()
     path_time = time.strftime("%H-%M-%S", t)
     path      = res_path+'/'+params.env_name+'_'+str(path_time)
-    if (not os.path.exists(path)):
-        os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
 
     for i in range(params.n_avg):
         print('### Avg run #'+str(i))
@@ -64,13 +63,13 @@ if __name__ == '__main__':
             data[i,:,j] = f[:params.n_gen,j+1]
 
     # Write to file
-    file_out  = path+'/pbo_avg.dat'
-    array     = np.vstack(gen)
+    file_out = path+'/pbo_avg.dat'
+    array    = np.vstack(gen)
     for j in range(n_data):
-        avg     = np.mean(data[:,:,j], axis=0)
-        std     = np.std (data[:,:,j], axis=0)
+        avg = np.mean(data[:,:,j], axis=0)
+        std = np.std (data[:,:,j], axis=0)
 
-        if (j == 0):
+        if ((j == 0) and (params.avg_type == "log")):
             log_avg = np.log(avg)
             log_std = 0.434*std/avg
             log_p   = log_avg + log_std
@@ -78,13 +77,13 @@ if __name__ == '__main__':
             p       = np.exp(log_p)
             m       = np.exp(log_m)
         else:
-            avg   = np.mean(data[:,:,j], axis=0)
-            std   = np.std (data[:,:,j], axis=0)
-            p     = avg + std
-            m     = avg - std
+            avg = np.mean(data[:,:,j], axis=0)
+            std = np.std (data[:,:,j], axis=0)
+            p   = avg + std
+            m   = avg - std
         array   = np.hstack((array,np.vstack(avg)))
         array   = np.hstack((array,np.vstack(p)))
         array   = np.hstack((array,np.vstack(m)))
 
     np.savetxt(file_out, array, fmt='%.5e')
-    os.system('gnuplot -c plot/plot.gnu '+path)
+    os.system('gnuplot -c plot/plot.gnu '+path+" "+params.avg_type)

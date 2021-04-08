@@ -75,6 +75,8 @@ class Lattice:
         self.output_dir  = self.path+'/'+self.name+'_'+self.suffix+'/'
         self.png_dir     = self.output_dir+'./png/'
 
+        #if (not os.path.exists(self.path)):
+        #    os.makedirs(self.path)
         if (not os.path.exists(self.output_dir)):
             os.makedirs(self.output_dir)
         if (not os.path.exists(self.png_dir)):

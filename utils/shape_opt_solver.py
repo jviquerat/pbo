@@ -14,27 +14,21 @@ from utils.lattice import *
 
 # Generic solving function
 def cfd_solve(x_min, x_max, y_min, y_max, Re,
-              obs_size, obs_pos, path, suffix):
-
-    # Obstacle parameters
-    obs_name    = 'obs'
-    obs_npts    = 4
-    obs_nspts   = 100
-    obs_type    = 'square'
-    n_obs       = len(obs_size)
+              shape, path, suffix):
 
     # Free parameters
     # L_lbm correponds to y length
     # u_lbm corresponds to max velocity
     Re_lbm      = Re
     u_lbm       = 0.03
-    L_lbm       = 200
+    L_lbm       = 300
 
     # Deduce other parameters
+    obs_size    = 1.0
     Cs          = 1.0/math.sqrt(3.0)
     ny          = L_lbm
     u_avg       = 2.0*u_lbm/3.0
-    D_lbm       = math.floor(ny*obs_size[0]/(y_max-y_min))
+    D_lbm       = math.floor(ny*obs_size/(y_max-y_min))
     nu_lbm      = u_avg*D_lbm/Re_lbm
     tau_lbm     = 0.5 + nu_lbm/(Cs**2)
     rho_lbm     = 1.0
@@ -79,17 +73,8 @@ def cfd_solve(x_min, x_max, y_min, y_max, Re,
                   path        = path,
                   suffix      = suffix)
 
-    # Generate obstacles
-    obs = [None]*n_obs
-    for i in range(n_obs):
-        obs[i]  = generate_shape(obs_npts,
-                                 obs_pos[i],
-                                 obs_type,
-                                 obs_size[i],
-                                 obs_name,
-                                 obs_nspts,
-                                 lat.output_dir)
-        lat.add_obstacle(obs[i].curve_pts, i+1)
+    # Add obstacle
+    lat.add_obstacle(shape.curve_pts, 1)
     lat.generate_image()
 
     # Initialize fieldcs
@@ -122,8 +107,7 @@ def cfd_solve(x_min, x_max, y_min, y_max, Re,
         lat.collision_stream()
 
         # Boundary conditions
-        for i in range(n_obs):
-            lat.bounce_back_obstacle(i)
+        lat.bounce_back_obstacle(0)
         lat.zou_he_bottom_wall_velocity()
         lat.zou_he_left_wall_velocity()
         lat.zou_he_top_wall_velocity()
@@ -134,12 +118,7 @@ def cfd_solve(x_min, x_max, y_min, y_max, Re,
         lat.zou_he_bottom_right_corner()
 
         # Compute drag/lift
-        drag = 0.0
-        lift = 0.0
-        for i in range(n_obs):
-            drag_obs, lift_obs = lat.drag_lift(i,rho_lbm, u_avg, D_lbm)
-            drag              += drag_obs
-            lift              += lift_obs
+        drag, lift = lat.drag_lift(0, rho_lbm, u_avg, D_lbm)
         lat.add_buff(drag, lift, lat.it)
 
         # Check stopping criterion
@@ -148,6 +127,7 @@ def cfd_solve(x_min, x_max, y_min, y_max, Re,
     # Finalize
     success          = True
     avg_drag, growth = lat.drag_buff.mv_avg()
+    avg_lift, growth = lat.lift_buff.mv_avg()
     if (avg_drag > 1.0e2): success = False
 
-    return avg_drag, success
+    return avg_drag, avg_lift, success

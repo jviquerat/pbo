@@ -150,6 +150,7 @@ class pbo:
         # Draw actions
         ac = pdf.sample(n)
         ac = np.asarray(ac)
+        ac = np.clip(ac, -1.0, 1.0)
 
         # For convenience, mu and sg are returned
         # with the same dimension as actions

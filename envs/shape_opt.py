@@ -2,14 +2,13 @@
 import numpy as np
 
 # Custom imports
-from utils.shapes  import *
-from utils.solver  import *
-from envs.base_env import *
-
+from utils.shapes           import *
+from utils.shape_opt_solver import *
+from envs.base_env          import *
 
 ###############################################
 ### Environment for shape optimization
-class shape_opt():
+class shape_opt(base_env):
 
     ### Create object
     def __init__(self, path):
@@ -17,25 +16,25 @@ class shape_opt():
         # Fill structure
         self.name     = 'shape_env'
         self.n_pts    = 4
-        self.n_mv_pts = 1
+        self.n_mv_pts = 3
         self.vol_pt   = 3
-        self.n_params = self.vol_pt*self.n_mv_pts
-        self.min_rad  = 0.2
-        self.max_rad  = 1.0
+        self.act_size = self.vol_pt*self.n_mv_pts
+        self.obs_size = self.act_size
+        self.obs      = np.zeros(self.obs_size)
+        self.min_rad  = 0.05
+        self.max_rad  = 0.5
         self.min_edg  = 0.0
         self.max_edg  = 1.0
-        self.mv_pts   = [0]
+        self.mv_pts   = [0,1,3]
+        self.x_min    =-2.0
+        self.x_max    = 10.0
+        self.y_min    =-2.0
+        self.y_max    = 2.0
+        self.Re       = 40.0
         self.path     = path
-
-        self.obs      = np.ones(1)
+        self.lat_path = self.path+'/lattice'
         self.shape    = generate_shape(self.n_pts, [0.0,0.0], 'cylinder',
                                        1.0, 'shape', 100, self.path)
-
-    ### Provide observation
-    def observe(self):
-
-        # Always return the same observation
-        return self.obs
 
     ### Take one step
     def step(self, act, ep):
@@ -44,10 +43,13 @@ class shape_opt():
         acc = self.convert_actions(act)
 
         # Generate new shape
-        self.generate_shape(acc, ep)
+        self.update_shape(acc, ep)
 
         # Solve CFD with LBM
-        drg, lft = solve(self.shape, self.path, ep)
+        drg, lft, _ = cfd_solve(self.x_min,    self.x_max,
+                                self.y_min,    self.y_max,
+                                self.Re,       self.shape,
+                                self.lat_path, str(ep))
 
         # Compute reward
         rwd = self.compute_reward(drg, lft)
@@ -69,8 +71,8 @@ class shape_opt():
 
         return acc
 
-    ### Generate shape
-    def generate_shape(self, acc, ep):
+    ### Update shape
+    def update_shape(self, acc, ep):
 
         # Modify shape
         self.shape.modify_shape_from_field(acc,
@@ -81,7 +83,7 @@ class shape_opt():
                                   show_quadrants = True,
                                   min_radius     = self.min_rad,
                                   max_radius     = self.max_rad,
-                                  index          = ep)
+                                  ep             = ep)
 
     ### Compute forward geometrical transformation for actions
     ### (u,v,w) assumed in [-1,1]**3
@@ -104,10 +106,6 @@ class shape_opt():
     def compute_reward(self, drag, lift):
 
         # Drag is always <0 while lift changes sign
-        reward =-lift/abs(drag)
+        reward = lift/abs(drag)
 
         return reward
-
-    ### Close environment
-    def close(self):
-        pass

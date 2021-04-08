@@ -1,6 +1,7 @@
 {
     "env_name": "rosenbrock_5d",
     "pdf": "cma-full",
+    "avg_type": "log",
     "n_gen": 300,
     "n_ind": 8,
     "n_avg": 5,

@@ -56,10 +56,6 @@ class Shape:
     ### Build shape
     def build(self):
 
-        # Center set of points
-        center = np.mean(self.control_pts, axis=0)
-        self.control_pts -= center
-
         # Sort points counter-clockwise
         control_pts, radius, edgy  = ccw_sort(self.control_pts,
                                               self.radius,
@@ -117,11 +113,6 @@ class Shape:
         self.curve_pts = np.column_stack((x,y,z))
         self.curve_pts = remove_duplicate_pts(self.curve_pts)
 
-        # Center set of points
-        center            = np.mean(self.curve_pts, axis=0)
-        self.curve_pts   -= center
-        self.control_pts[:,0:2] -= center[0:2]
-
         # Reprocess to position
         self.control_pts[:,0:2] += self.position[0:2]
         self.curve_pts  [:,0:2] += self.position[0:2]
@@ -131,13 +122,20 @@ class Shape:
     def generate_image(self, *args, **kwargs):
 
         # Handle optional argument
-        plot_pts = kwargs.get('plot_pts',  True)
-        xmin     = kwargs.get('xmin',     -1.0)
-        xmax     = kwargs.get('xmax',      1.0)
-        ymin     = kwargs.get('ymin',     -1.0)
-        ymax     = kwargs.get('ymax',      1.0)
+        plot_pts       = kwargs.get('plot_pts',       True)
+        xmin           = kwargs.get('xmin',          -1.0)
+        xmax           = kwargs.get('xmax',           1.0)
+        ymin           = kwargs.get('ymin',          -1.0)
+        ymax           = kwargs.get('ymax',           1.0)
+        ep             = kwargs.get('ep',             0)
+        max_radius     = kwargs.get('max_radius',     1.0)
+        min_radius     = kwargs.get('min_radius',     0.1)
+        show_quadrants = kwargs.get('show_quadrants', False)
 
         # Plot shape
+        plt.clf()
+        fig, ax = plt.subplots(figsize=(xmax-xmin,ymax-ymin))
+        fig.subplots_adjust(0,0,1,1)
         plt.xlim([xmin,xmax])
         plt.ylim([ymin,ymax])
         plt.axis('off')
@@ -155,28 +153,53 @@ class Shape:
 
         # Plot points
         # Each point gets a different color
-        colors = matplotlib.cm.ocean(np.linspace(0, 1,
-                                                 self.n_control_pts))
-        plt.scatter(self.control_pts[:,0],
-                    self.control_pts[:,1],
-                    color=colors,
-                    s=16,
-                    zorder=2,
-                    alpha=0.5)
+        if (plot_pts):
+            colors = matplotlib.cm.ocean(np.linspace(0, 1,
+                                                     self.n_control_pts))
+            plt.scatter(self.control_pts[:,0],
+                        self.control_pts[:,1],
+                        color=colors,
+                        s=16,
+                        zorder=2,
+                        alpha=0.5)
+
+        # Plot quadrants
+        if (show_quadrants):
+            for pt in range(self.n_control_pts):
+                dangle = (360.0/float(self.n_control_pts))
+                angle  = dangle*float(pt)+dangle/2.0
+                x_max  = max_radius*math.cos(math.radians(angle))
+                y_max  = max_radius*math.sin(math.radians(angle))
+                x_min  = min_radius*math.cos(math.radians(angle))
+                y_min  = min_radius*math.sin(math.radians(angle))
+                plt.plot([x_min, x_max],
+                         [y_min, y_max],
+                         color='w',
+                         linewidth=1)
+
+            circle = plt.Circle((0,0),max_radius,fill=False,color='w')
+            plt.gcf().gca().add_artist(circle)
+            circle = plt.Circle((0,0),min_radius,fill=False,color='w')
+            plt.gcf().gca().add_artist(circle)
 
         # Save image
-        filename = self.output_dir+self.name+'.png'
+        filename = self.output_dir+'/shape'
+        if (not os.path.exists(filename)):
+            os.makedirs(filename)
+        filename = filename+'/'+self.name+'_'+str(ep)+'.png'
 
         plt.savefig(filename,
                     dpi=200)
         plt.close(plt.gcf())
         plt.cla()
-        trim_white(filename)
 
     ### ************************************************
     ### Write csv
-    def write_csv(self):
-        filename = self.output_dir+self.name+'.csv'
+    def write_csv(self, ep):
+        filename = self.output_dir+'/csv'
+        if (not os.path.exists(filename)):
+            os.makedirs(filename)
+        filename = filename+'/'+self.name+'_'+str(ep)+'.csv'
         with open(filename,'w') as file:
             # Write header
             file.write('{} {}\n'.format(self.n_control_pts,
@@ -461,6 +484,6 @@ def generate_shape(n_pts,
                          xmax = shape_size,
                          ymin =-shape_size,
                          ymax = shape_size)
-    shape.write_csv()
+    shape.write_csv(0)
 
     return shape
