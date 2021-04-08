@@ -45,6 +45,6 @@ Two control cases are designed: the first one consists in forcing the system to 
 </p>
 
 <p align="center">
-  <img width="450" alt="" src="https://user-images.githubusercontent.com/44053700/113981902-77359680-9848-11eb-892e-6555dc203d84.gif">
-  <img width="450" alt="" src="https://user-images.githubusercontent.com/44053700/113981922-7dc40e00-9848-11eb-9d57-4dbf7995be5e.gif">
+  <img width="420" alt="" src="https://user-images.githubusercontent.com/44053700/113981902-77359680-9848-11eb-892e-6555dc203d84.gif">
+  <img width="420" alt="" src="https://user-images.githubusercontent.com/44053700/113981922-7dc40e00-9848-11eb-9d57-4dbf7995be5e.gif">
 </p>
