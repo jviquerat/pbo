@@ -8,7 +8,7 @@ PBO (policy-based optimization) is a degenerate policy gradient algorithm used f
 
 ## Usage
 
-The environments from the paper are available in the `envs/*` folder. For each `.py` environment file, you need a `.jsn` parameter file. To run an environment, just use:
+The environments from the paper are available in the `envs/*` folder. For each `.py` environment file, you need a `.json` parameter file. To run an environment, just use:
 
 ```
 python3 start.py envs/my_env.json
