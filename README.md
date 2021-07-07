@@ -29,7 +29,7 @@ We consider the minimization on a parabola defined in [-5,5]x[-5,5]. Below is th
 The Rosenbrock function is here defined in [-2,2]x[-2,2]. It contains a very narrow valley, with a minimum in [1,1]. The shape of the valley makes it a hard optimization problem for many algorithms. Here is the course of a single run, generation after generation, with a starting point in [0.0,-1.0]:
 
 <p align="center">
-  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/104337105-67cad980-54f5-11eb-9c43-2ff2bc2624d4.gif">
+  <img width="900" alt="" src="pbo/save/rosenbrock/rosenbrock.gif">
 </p>
 
 ## Parametric control laws for the chaotic Lorenz attractor
@@ -37,22 +37,18 @@ The Rosenbrock function is here defined in [-2,2]x[-2,2]. It contains a very nar
 We consider the equations of the Lorenz attractor with a velocity-based control term:
 
 <p align="center">
-  <img width="300" alt="" src="https://user-images.githubusercontent.com/44053700/113980948-5caeed80-9847-11eb-859a-14eda25e4322.jpg">
+  <img width="300" alt="" src="pbo/save/eq.jpeg">
 </p>
 
 We make use of the following non-linear control with four free parameters:
 
 <p align="center">
-  <img width="300" alt="" src="https://user-images.githubusercontent.com/44053700/113981120-954ec700-9847-11eb-9c44-02ef90aacf74.jpg">
+  <img width="300" alt="" src="pbo/save/ctrl.jpeg">
 </p>
 
-Two control cases are designed: the first one consists in forcing the system to stay in the x<0 quadrant, while the second one consists in maximizing the number of sign changes (cases inspired from <a href="https://research.tue.nl/files/146730787/Beintema_afstudeerverslag.pdf">this thesis</a>). Below is a comparison between the uncontrolled system (top), and the two controlled cases (bottom left, bottom right).
+Two control cases are designed: the first one consists in forcing the system to stay in the x<0 quadrant, while the second one consists in maximizing the number of sign changes (cases inspired from <a href="https://research.tue.nl/files/146730787/Beintema_afstudeerverslag.pdf">this thesis</a>). Below is a comparison between the two controlled cases.
 
 <p align="center">
-  <img width="600" alt="" src="https://user-images.githubusercontent.com/44053700/113982301-e57a5900-9848-11eb-80cf-82149ff28595.gif">
-</p>
-
-<p align="center">
-  <img width="400" alt="" src="https://user-images.githubusercontent.com/44053700/113981902-77359680-9848-11eb-892e-6555dc203d84.gif">
-  <img width="400" alt="" src="https://user-images.githubusercontent.com/44053700/113981922-7dc40e00-9848-11eb-9d57-4dbf7995be5e.gif">
+  <img width="450" alt="" src="pbo/save/lorenz_stabilizer/lorenz.gif">
+  <img width="450" alt="" src="pbo/save/lorenz_oscillator/lorenz.gif">
 </p>
