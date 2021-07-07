@@ -21,7 +21,7 @@ Below are some selected visuals of cases presented in the paper.
 We consider the minimization on a parabola defined in [-5,5]x[-5,5]. Below is the course of a single run, generation after generation, with a starting point in [2.5,2.5]:
 
 <p align="center">
-  <img width="900" alt="" src="https://user-images.githubusercontent.com/44053700/104418877-e9634b80-5577-11eb-8fa9-ca369d6c8059.gif">
+  <img width="900" alt="" src="pbo/save/parabola/parabola.gif">
 </p>
 
 ## Rosenbrock function
