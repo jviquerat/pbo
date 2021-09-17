@@ -17,21 +17,35 @@ class parabola_triangle(base_env):
         self.act_size = 2
         self.obs_size = self.act_size
         self.obs      = np.zeros(self.obs_size)
-        self.x_min    = np.array([0.0,  1.0])
-        self.x_max    = np.array([0.0,  1.0])
-        self.x_0      = np.array([0.35, 0.35])
+        self.x_0      = np.array([0.2, 0.2])
 
     ### Convert actions
     def convert_actions(self, actions):
 
-        # Initialize conv_actions array
+        # Initialize arrays
         conv_actions = self.act_size*[None]
+        x_p          = self.act_size*[None]
+        x_m          = self.act_size*[None]
 
-        # Map first component to [0,1]
-        conv_actions[0] = 0.5*(actions[0]+1.0)
+        # Convert second component
+        x_p[0] = 1.0 - self.x_0[0]
+        x_m[0] = self.x_0[0] - 0.0
 
-        # Map second component to [0,1-x]
-        conv_actions[1] = 0.5*(actions[1]+1.0)*(1.0-conv_actions[0])
+        if (actions[0] >= 0.0):
+            conv_actions[0] = self.x_0[0] + x_p[0]*actions[0]
+        if (actions[0] <  0.0):
+            conv_actions[0] = self.x_0[0] + x_m[0]*actions[0]
+
+        x_p[1] = 1.0 - conv_actions[0] - self.x_0[1]
+        x_m[1] = self.x_0[1] - 0.0
+
+        if (actions[1] >= 0.0):
+            conv_actions[1] = self.x_0[1] + x_p[1]*actions[1]
+        if (actions[1] <  0.0):
+            conv_actions[1] = self.x_0[1] + x_m[1]*actions[1]
+
+        #conv_actions[0] = 0.5*(actions[0]+1.0)
+        #conv_actions[1] = 0.5*(actions[1]+1.0)*(1.0-conv_actions[0])
 
         return conv_actions
 

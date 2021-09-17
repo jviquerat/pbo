@@ -55,7 +55,7 @@ Two control cases are designed: the first one consists in forcing the system to 
 
 ## Parabola function on triangular domain
 
-To test the case of dependant variables, we consider a parabola function on a triangular domain, with `x` in `[0,1]` and `y` in `[0,1-x]`. The parabola has its minimum in `[0.1,0.8]`, while the starting point is located in `[0.35,0.35]`:
+To test the case of dependant variables, we consider a parabola function on a triangular domain, with `x` in `[0,1]` and `y` in `[0,1-x]`. The parabola has its minimum in `[0.1,0.8]`, while the starting point is located in `[0.2,0.2]`:
 
 <p align="center">
   <img width="900" alt="" src="pbo/save/parabola_triangle/parabola_triangle.gif">
