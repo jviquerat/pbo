@@ -73,6 +73,7 @@ class pbo:
         self.mu      = np.zeros((self.size, self.mu_dim), dtype=np.float64)
         self.sg      = np.zeros((self.size, self.sg_dim), dtype=np.float64)
         self.cr      = np.zeros((self.size, self.cr_dim), dtype=np.float64)
+        self.pdv     = np.zeros( self.size,               dtype=np.float64)
 
         self.bst_acc = np.zeros((self.n_gen,self.act_dim),dtype=np.float64)
         self.bst_rwd = np.zeros( self.n_gen,              dtype=np.float64)
@@ -88,8 +89,6 @@ class pbo:
         self.lr_mu   = np.zeros( self.n_gen,              dtype=np.float64)
         self.lr_sg   = np.zeros( self.n_gen,              dtype=np.float64)
         self.lr_cr   = np.zeros( self.n_gen,              dtype=np.float64)
-
-        self.pdv     = [None]*self.size
 
     # Get data history
     def get_history(self, n_gen):
@@ -120,6 +119,7 @@ class pbo:
         buff_mu  = tf.reshape(buff_mu,  [buff_size, self.mu_dim])
         buff_sg  = tf.reshape(buff_sg,  [buff_size, self.sg_dim])
         buff_cr  = tf.reshape(buff_cr,  [buff_size, self.cr_dim])
+        buff_pdv = tf.reshape(buff_pdv, [buff_size])
 
         return buff_obs, buff_act, buff_adv, buff_mu, \
                buff_sg, buff_cr, buff_pdv, n_gen
@@ -161,7 +161,7 @@ class pbo:
         sg = np.tile(sg,(n,1))
         cr = np.tile(cr,(n,1))
 
-        pdv = [pdf]*n
+        pdv = pdf.log_prob(ac)
 
         return ac, mu, sg, cr, pdv
 
@@ -377,7 +377,7 @@ class pbo:
             mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
             # Compute loss
-            loss = self.get_loss(obs, adv, act, mu, sg, cr)
+            loss = self.get_loss(obs, adv, act, mu, sg, cr, pdv)
 
         # Apply gradients
         grads = tape.gradient(loss, var)
@@ -400,7 +400,7 @@ class pbo:
             mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
             # Compute loss
-            loss = self.get_loss(obs, adv, act, mu, sg, cr)
+            loss = self.get_loss(obs, adv, act, mu, sg, cr, pdv)
 
         # Apply gradients
         grads = tape.gradient(loss, var)
@@ -423,7 +423,7 @@ class pbo:
             mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
             # Compute loss
-            loss = self.get_loss(obs, adv, act, mu, sg, cr)
+            loss = self.get_loss(obs, adv, act, mu, sg, cr, pdv)
 
         # Apply gradients
         grads = tape.gradient(loss, var)
@@ -433,7 +433,7 @@ class pbo:
         return loss, norm
 
     # Compute loss
-    def get_loss(self, obs, adv, act, mu, sg, cr):
+    def get_loss(self, obs, adv, act, mu, sg, cr, pdv):
 
         # Compute pdf
         if (self.pdf == 'es'):
@@ -447,8 +447,10 @@ class pbo:
             log = pdf.log_prob(act)
 
         # Compute loss
-        s     = tf.multiply(adv, log)
-        loss  =-tf.reduce_mean(s)
+        r     = tf.exp(log-pdv)
+        s     = tf.multiply(adv,log)
+        p     = tf.multiply(r,s)
+        loss  =-tf.reduce_mean(p)
 
         return loss
 

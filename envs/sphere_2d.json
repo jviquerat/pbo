@@ -22,5 +22,5 @@
     "sg_batch": 4,
     "cr_batch": 8,
     "adv_clip": true,
-    "adv_decay": 0.5
+    "adv_decay": 1.0
 }
