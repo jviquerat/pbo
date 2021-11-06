@@ -289,9 +289,11 @@ class pbo:
                 btc_mu   = mu[start:end]
                 btc_sg   = sg[start:end]
                 btc_cr   = cr[start:end]
+                btc_pdv  = pdv[start:end]
 
                 ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act,
-                                              btc_mu,  btc_sg,  btc_cr)
+                                              btc_mu,  btc_sg,  btc_cr,
+                                              btc_pdv)
 
         return ls_mu, nrm_mu
 
@@ -319,9 +321,11 @@ class pbo:
                 btc_mu   = mu[start:end]
                 btc_sg   = sg[start:end]
                 btc_cr   = cr[start:end]
+                btc_pdv  = pdv[start:end]
 
                 ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act,
-                                              btc_mu,  btc_sg,  btc_cr)
+                                              btc_mu,  btc_sg,  btc_cr,
+                                              btc_pdv)
 
         return ls_sg, nrm_sg
 
@@ -351,15 +355,17 @@ class pbo:
                 btc_mu   = mu[start:end]
                 btc_sg   = sg[start:end]
                 btc_cr   = cr[start:end]
+                btc_pdv  = pdv[start:end]
 
                 ls_cr, nrm_cr = self.train_cr(btc_obs, btc_adv, btc_act,
-                                              btc_mu,  btc_sg,  btc_cr)
+                                              btc_mu,  btc_sg,  btc_cr,
+                                              btc_pdv)
 
         return ls_cr, nrm_cr
 
     # Train mu network
     @tf.function
-    def train_mu(self, obs, adv, act, mu, sg, cr):
+    def train_mu(self, obs, adv, act, mu, sg, cr, pdv):
         var = self.net_mu.trainable_variables
         with tf.GradientTape() as tape:
             # Watch network variables
@@ -382,7 +388,7 @@ class pbo:
 
     # Train sg network
     @tf.function
-    def train_sg(self, obs, adv, act, mu, sg, cr):
+    def train_sg(self, obs, adv, act, mu, sg, cr, pdv):
         var = self.net_sg.trainable_variables
         with tf.GradientTape() as tape:
             # Watch network variables
@@ -405,7 +411,7 @@ class pbo:
 
     # Train cr network
     @tf.function
-    def train_cr(self, obs, adv, act, mu, sg, cr):
+    def train_cr(self, obs, adv, act, mu, sg, cr, pdv):
         var = self.net_cr.trainable_variables
         with tf.GradientTape() as tape:
             # Watch network variables
