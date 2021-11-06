@@ -89,6 +89,8 @@ class pbo:
         self.lr_sg   = np.zeros( self.n_gen,              dtype=np.float64)
         self.lr_cr   = np.zeros( self.n_gen,              dtype=np.float64)
 
+        self.pdv     = [None]*self.size
+
     # Get data history
     def get_history(self, n_gen):
 
@@ -109,6 +111,7 @@ class pbo:
         buff_mu  = [self.mu [i] for i in sample]
         buff_sg  = [self.sg [i] for i in sample]
         buff_cr  = [self.cr [i] for i in sample]
+        buff_pdv = [self.pdv[i] for i in sample]
 
         # Reshape
         buff_obs = tf.reshape(buff_obs, [buff_size, self.obs_dim])
@@ -119,7 +122,7 @@ class pbo:
         buff_cr  = tf.reshape(buff_cr,  [buff_size, self.cr_dim])
 
         return buff_obs, buff_act, buff_adv, buff_mu, \
-               buff_sg, buff_cr, n_gen
+               buff_sg, buff_cr, buff_pdv, n_gen
 
     # Get actions from network
     def get_actions(self, state, n):
@@ -158,7 +161,9 @@ class pbo:
         sg = np.tile(sg,(n,1))
         cr = np.tile(cr,(n,1))
 
-        return ac, mu, sg, cr
+        pdv = [pdf]*n
+
+        return ac, mu, sg, cr, pdv
 
     # Printings
     def print_generation(self, gen, rwd):
@@ -169,7 +174,7 @@ class pbo:
         print('#   Generation #'+str(gen)+', best reward '+str(rwd), end=end)
 
     # Store transitions into buffer
-    def store_transition(self, obs, act, acc, rwd, mu, sg, cr, n):
+    def store_transition(self, obs, act, acc, rwd, mu, sg, cr, pdv, n):
 
         # Fill buffers
         for cpu in range(n):
@@ -180,6 +185,7 @@ class pbo:
             self.mu [self.idx] = mu [cpu]
             self.sg [self.idx] = sg [cpu]
             self.cr [self.idx] = cr [cpu]
+            self.pdv[self.idx] = pdv[cpu]
             self.idx          += 1
 
     # Store learning data
@@ -266,7 +272,7 @@ class pbo:
         # Update sigma network
         for epoch in range(self.mu_epochs):
 
-            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.mu_gen)
+            obs, act, adv, mu, sg, cr, pdv, n = self.get_history(self.mu_gen)
             done = False
             btc  = 0
 
@@ -295,7 +301,7 @@ class pbo:
         # Update sigma network
         for epoch in range(self.sg_epochs):
 
-            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.sg_gen)
+            obs, act, adv, mu, sg, cr, pdv, n = self.get_history(self.sg_gen)
             done = False
             btc  = 0
 
@@ -328,7 +334,7 @@ class pbo:
         # Update sigma network
         for epoch in range(self.cr_epochs):
 
-            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.cr_gen)
+            obs, act, adv, mu, sg, cr, pdv, n = self.get_history(self.cr_gen)
             done = False
             btc  = 0
 

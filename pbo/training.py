@@ -40,11 +40,11 @@ def launch_training(params, path, run):
         for i in range(size):
 
             # Make one iteration over all processes
-            n                = n_loop[i]
-            obs              = env.observe(n)
-            act, mu, sig, cr = agent.get_actions(obs, n)
-            rwd, acc         = env.step(act, n, ep)
-            agent.store_transition(obs, act, acc, rwd, mu, sig, cr, n)
+            n                     = n_loop[i]
+            obs                   = env.observe(n)
+            act, mu, sig, cr, pdv = agent.get_actions(obs, n)
+            rwd, acc              = env.step(act, n, ep)
+            agent.store_transition(obs, act, acc, rwd, mu, sig, cr, pdv, n)
 
             # Store a few things
             for ind in range(n):
