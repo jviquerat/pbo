@@ -18,8 +18,8 @@
     "mu_gen": 4,
     "sg_gen": 4,
     "cr_gen": 4,
-    "mu_batch": 1,
-    "sg_batch": 4,
+    "mu_batch": 8,
+    "sg_batch": 8,
     "cr_batch": 8,
     "adv_clip": true,
     "adv_decay": 0.5
