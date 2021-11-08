@@ -29,7 +29,7 @@ class nn(Model):
 
         # Define hidden layers
         for layer in range(len(arch)):
-            self.net.append(BatchNormalization())
+            self.net.append(BatchNormalization(momentum=0.0))
             self.net.append(Dense(arch[layer],
                                   kernel_initializer=Orthogonal(gain=1.0),
                                   activation=act,
