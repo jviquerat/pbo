@@ -41,17 +41,17 @@ class pbo:
         # Build mu network
         self.net_mu     = nn(params.mu_arch,
                              self.mu_dim,
-                             'swish',
+                             'tanh',
                              'tanh',
                              self.lr_mu)
         self.net_sg     = nn(params.sg_arch,
                              self.sg_dim,
-                             'swish',
+                             'sigmoid',
                              'sigmoid',
                              self.lr_sg)
         self.net_cr     = nn(params.cr_arch,
                              self.cr_dim,
-                             'swish',
+                             'sigmoid',
                              'sigmoid',
                              self.lr_cr)
 
@@ -246,7 +246,6 @@ class pbo:
 
         # Clip advantages if required
         if (self.adv_clip):
-            #adv = np.clip(adv, 0.1, 1.0e8)
             adv = np.maximum(adv, 0.0)
 
         # Store
@@ -433,7 +432,8 @@ class pbo:
             log = pdf.log_prob(act)
 
         # Compute loss
-        r = tf.exp(self.prp.log_prob(act)-pdv)
+        #r = tf.exp(self.prp.log_prob(act)-pdv)
+
         #r = tf.exp(pdf.log_prob(act)-pdv)
         #print(r)
         #avg = tf.math.reduce_mean(r)
@@ -442,12 +442,13 @@ class pbo:
         #r = tf.linalg.normalize(r,ord=1)[0]
         #print(r)
         #print("")
-        r = tf.clip_by_value(r, 1.0, 1.0)
+
+        #r = tf.clip_by_value(r, 1.0, 1.0)
         s = tf.multiply(adv,log)
-        p = tf.multiply(r,s)
+        #p = tf.multiply(r,s)
 
         #loss  =-tf.reduce_mean(p)
-        loss  =-tf.reduce_sum(p)
+        loss  =-tf.reduce_mean(s)
 
         return loss
 
