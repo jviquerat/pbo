@@ -175,7 +175,7 @@ class pbo:
         # Print
         if (gen == self.n_gen-1): end = '\n'
         if (gen != self.n_gen-1): end = '\r'
-        print('#   Generation #'+str(gen)+', best reward '+str(rwd), end=end)
+        print('#   Generation #'+str(gen)+', best reward '+str(rwd)+'               ', end=end)
 
     # Store transitions into buffer
     def store_transition(self, obs, act, acc, rwd, mu, sg, cr, pdv, n):
@@ -249,7 +249,6 @@ class pbo:
         # Compute normalized advantage
         avg_rwd = np.mean(self.rwd[start:end])
         std_rwd = np.std( self.rwd[start:end])
-
         adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-15)
 
         # Clip advantages if required
@@ -453,7 +452,14 @@ class pbo:
 
         # Compute loss
         r = tf.exp(self.prp.log_prob(act)-pdv)
-        #r = tf.clip_by_value(r, 0.9, 1.1)
+        #print(r)
+        #avg = tf.math.reduce_mean(r)
+        #std = tf.math.reduce_std(r) + 1.0e-8
+        #r = tf.divide(r-avg,std)
+        r = tf.linalg.normalize(r,ord=1)[0]
+        #print(r)
+        #print("")
+        r = tf.clip_by_value(r, 0.01, 1.99)
         s = tf.multiply(adv,log)
         p = tf.multiply(r,s)
 
