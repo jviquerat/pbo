@@ -246,10 +246,11 @@ class pbo:
 
         # Clip advantages if required
         if (self.adv_clip):
+            #adv = np.clip(adv, 0.1, 1.0e8)
             adv = np.maximum(adv, 0.0)
 
         # Store
-        self.adv[start:end] = adv
+        self.adv[start:end] = adv[:]
 
     # Train networks
     def train_networks(self):
@@ -445,7 +446,8 @@ class pbo:
         s = tf.multiply(adv,log)
         p = tf.multiply(r,s)
 
-        loss  =-tf.reduce_mean(p)
+        #loss  =-tf.reduce_mean(p)
+        loss  =-tf.reduce_sum(p)
 
         return loss
 
