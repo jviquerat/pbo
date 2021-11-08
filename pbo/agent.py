@@ -29,7 +29,7 @@ class nn(Model):
 
         # Define hidden layers
         for layer in range(len(arch)):
-            self.net.append(BatchNormalization(momentum=0.0))
+            #self.net.append(BatchNormalization())
             self.net.append(Dense(arch[layer],
                                   kernel_initializer=Orthogonal(gain=1.0),
                                   activation=act,
@@ -37,13 +37,13 @@ class nn(Model):
 
         # Define last layer
         self.net.append(Dense(dim,
-                              kernel_initializer=Orthogonal(gain=0.01),
+                              kernel_initializer=Orthogonal(gain=1.0),
                               activation=last,
                               dtype='float64'))
 
         # Define optimizer
-        self.opt = tk.optimizers.Nadam(learning_rate = lr,
-                                       clipnorm      = 1.0)
+        self.opt = tk.optimizers.Nadam(learning_rate = lr)
+        #clipnorm      = 1.0)
 
     # Network forward pass
     @tf.function
