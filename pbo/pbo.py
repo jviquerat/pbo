@@ -41,17 +41,17 @@ class pbo:
         # Build mu network
         self.net_mu     = nn(params.mu_arch,
                              self.mu_dim,
-                             'tanh',
+                             'swish',
                              'tanh',
                              self.lr_mu)
         self.net_sg     = nn(params.sg_arch,
                              self.sg_dim,
-                             'sigmoid',
+                             'swish',
                              'sigmoid',
                              self.lr_sg)
         self.net_cr     = nn(params.cr_arch,
                              self.cr_dim,
-                             'sigmoid',
+                             'swish',
                              'sigmoid',
                              self.lr_cr)
 
@@ -245,7 +245,8 @@ class pbo:
         # Compute normalized advantage
         avg_rwd = np.mean(self.rwd[start:end])
         std_rwd = np.std( self.rwd[start:end])
-        adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-12)
+
+        adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-15)
 
         # Clip advantages if required
         if (self.adv_clip):
@@ -447,7 +448,8 @@ class pbo:
             log = pdf.log_prob(act)
 
         # Compute loss
-        r     = tf.exp(log-pdv)
+        r     = tf.clip_by_value(tf.exp(log-pdv),1.0,1.0)
+        #r     = tf.exp(log-pdv)
         s     = tf.multiply(adv,log)
         p     = tf.multiply(r,s)
         loss  =-tf.reduce_mean(p)

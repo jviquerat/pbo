@@ -15,12 +15,12 @@
     "mu_epochs": 128,
     "sg_epochs": 8,
     "cr_epochs": 8,
-    "mu_gen": 1,
-    "sg_gen": 8,
-    "cr_gen": 16,
+    "mu_gen": 4,
+    "sg_gen": 4,
+    "cr_gen": 4,
     "mu_batch": 1,
     "sg_batch": 4,
     "cr_batch": 8,
     "adv_clip": true,
-    "adv_decay": 1.0
+    "adv_decay": 0.5
 }
