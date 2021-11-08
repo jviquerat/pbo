@@ -60,6 +60,9 @@ class pbo:
         dummy = self.net_sg(tf.ones([1,self.obs_dim]))
         dummy = self.net_cr(tf.ones([1,self.obs_dim]))
 
+        # Storage for previous pdf
+        self.prp = None
+
         # Storing buffers
         self.idx     = 0
 
@@ -161,6 +164,7 @@ class pbo:
         sg = np.tile(sg,(n,1))
         cr = np.tile(cr,(n,1))
 
+        self.prp = pdf
         pdv = pdf.log_prob(ac)
 
         return ac, mu, sg, cr, pdv
@@ -448,10 +452,11 @@ class pbo:
             log = pdf.log_prob(act)
 
         # Compute loss
-        r     = tf.clip_by_value(tf.exp(log-pdv),1.0,1.0)
-        #r     = tf.exp(log-pdv)
-        s     = tf.multiply(adv,log)
-        p     = tf.multiply(r,s)
+        r = tf.exp(self.prp.log_prob(act)-pdv)
+        #r = tf.clip_by_value(r, 0.9, 1.1)
+        s = tf.multiply(adv,log)
+        p = tf.multiply(r,s)
+
         loss  =-tf.reduce_mean(p)
 
         return loss
