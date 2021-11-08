@@ -456,10 +456,10 @@ class pbo:
         #avg = tf.math.reduce_mean(r)
         #std = tf.math.reduce_std(r) + 1.0e-8
         #r = tf.divide(r-avg,std)
-        r = tf.linalg.normalize(r,ord=1)[0]
+        #r = tf.linalg.normalize(r,ord=1)[0]
         #print(r)
         #print("")
-        r = tf.clip_by_value(r, 0.01, 1.99)
+        r = tf.clip_by_value(r, 1.0, 1.0)
         s = tf.multiply(adv,log)
         p = tf.multiply(r,s)
 

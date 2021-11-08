@@ -10,7 +10,7 @@ import tensorflow.keras              as     tk
 import tensorflow_probability        as     tfp
 import tensorflow_addons             as     tfa
 from   tensorflow.keras              import Model
-from   tensorflow.keras.layers       import Dense
+from   tensorflow.keras.layers       import Dense, BatchNormalization
 from   tensorflow.keras.initializers import Orthogonal, Constant
 
 # Define alias
@@ -29,6 +29,7 @@ class nn(Model):
 
         # Define hidden layers
         for layer in range(len(arch)):
+            self.net.append(BatchNormalization())
             self.net.append(Dense(arch[layer],
                                   kernel_initializer=Orthogonal(gain=1.0),
                                   activation=act,
