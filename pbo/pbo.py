@@ -60,9 +60,6 @@ class pbo:
         dummy = self.net_sg(tf.ones([1,self.obs_dim]))
         dummy = self.net_cr(tf.ones([1,self.obs_dim]))
 
-        # Storage for previous pdf
-        self.prp = None
-
         # Storing buffers
         self.idx     = 0
 
@@ -157,7 +154,6 @@ class pbo:
         sg = np.tile(sg,(n,1))
         cr = np.tile(cr,(n,1))
 
-        self.prp = pdf
         pdv = pdf.log_prob(ac)
         pdv = np.asarray(pdv)
 
@@ -459,7 +455,7 @@ class pbo:
 
         ### Use correlative angle matrix ###
         # Extract sigmas and thetas
-        sigmas = 0.85*sg
+        sigmas = sg
         thetas = cr*math.pi
 
         # Build initial theta matrix
