@@ -41,8 +41,8 @@ class nn(Model):
                               dtype='float64'))
 
         # Define optimizer
-        self.opt = tk.optimizers.Nadam(learning_rate = lr)
-        #clipnorm      = 1.0)
+        self.opt = tk.optimizers.Nadam(learning_rate = lr,
+                                       clipvalue     = 1.0)
 
     # Network forward pass
     @tf.function

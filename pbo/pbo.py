@@ -159,6 +159,7 @@ class pbo:
 
         self.prp = pdf
         pdv = pdf.log_prob(ac)
+        pdv = np.asarray(pdv)
 
         return ac, mu, sg, cr, pdv
 
@@ -431,24 +432,17 @@ class pbo:
             pdf = self.get_cov_pdf(mu[0], sg[0], cr[0])
             log = pdf.log_prob(act)
 
-        # Compute loss
-        #r = tf.exp(self.prp.log_prob(act)-pdv)
+        # Compute importance term
 
-        #r = tf.exp(pdf.log_prob(act)-pdv)
-        #print(r)
-        #avg = tf.math.reduce_mean(r)
-        #std = tf.math.reduce_std(r) + 1.0e-8
-        #r = tf.divide(r-avg,std)
-        #r = tf.linalg.normalize(r,ord=1)[0]
-        #print(r)
-        #print("")
+        # Standard IS
+        r = tf.exp(log-pdv)
 
-        #r = tf.clip_by_value(r, 1.0, 1.0)
+        #r = tf.clip_by_value(r, 0.1, 1.9)
         s = tf.multiply(adv,log)
-        #p = tf.multiply(r,s)
+        p = tf.multiply(r,s)
 
-        #loss  =-tf.reduce_mean(p)
-        loss  =-tf.reduce_mean(s)
+        loss =-tf.reduce_mean(p)
+        #loss  =-tf.reduce_mean(s)
 
         return loss
 
