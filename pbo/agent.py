@@ -36,7 +36,7 @@ class nn(Model):
 
         # Define last layer
         self.net.append(Dense(dim,
-                              kernel_initializer=Orthogonal(gain=0.1),
+                              kernel_initializer=Orthogonal(gain=0.01),
                               activation=last,
                               dtype='float64'))
 
