@@ -239,7 +239,7 @@ class pbo:
         # Compute normalized advantage
         avg_rwd = np.mean(self.rwd[start:end])
         std_rwd = np.std( self.rwd[start:end])
-        adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-8)
+        adv     = (self.rwd[start:end] - avg_rwd)/(std_rwd + 1.0e-12)
 
         # Clip advantages if required
         if (self.adv_clip):
@@ -429,8 +429,6 @@ class pbo:
             log = pdf.log_prob(act)
 
         # Compute importance term
-
-        # Standard IS
         r = tf.exp(log-pdv)
 
         #r = tf.clip_by_value(r, 0.1, 1.9)
@@ -438,7 +436,6 @@ class pbo:
         p = tf.multiply(r,s)
 
         loss =-tf.reduce_mean(p)
-        #loss  =-tf.reduce_mean(s)
 
         return loss
 
