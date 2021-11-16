@@ -159,7 +159,7 @@ class pbo:
         # Print
         if (gen == self.n_gen-1): end = '\n'
         if (gen != self.n_gen-1): end = '\r'
-        print('#   Generation #'+str(gen)+', best reward '+str(rwd), end=end)
+        print('#   Generation #'+str(gen)+', best reward '+str(rwd)+'                 ', end=end)
 
     # Store transitions into buffer
     def store_transition(self, obs, act, acc, rwd, mu, sg, cr, n):
