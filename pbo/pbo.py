@@ -106,20 +106,13 @@ class pbo:
         buff_obs = [self.obs[i] for i in sample]
         buff_act = [self.act[i] for i in sample]
         buff_adv = [self.adv[i] for i in sample]
-        buff_mu  = [self.mu [i] for i in sample]
-        buff_sg  = [self.sg [i] for i in sample]
-        buff_cr  = [self.cr [i] for i in sample]
 
         # Reshape
         buff_obs = tf.reshape(buff_obs, [buff_size, self.obs_dim])
         buff_act = tf.reshape(buff_act, [buff_size, self.act_dim])
         buff_adv = tf.reshape(buff_adv, [buff_size])
-        buff_mu  = tf.reshape(buff_mu,  [buff_size, self.mu_dim])
-        buff_sg  = tf.reshape(buff_sg,  [buff_size, self.sg_dim])
-        buff_cr  = tf.reshape(buff_cr,  [buff_size, self.cr_dim])
 
-        return buff_obs, buff_act, buff_adv, buff_mu, \
-               buff_sg, buff_cr, n_gen
+        return buff_obs, buff_act, buff_adv, n_gen
 
     # Get actions from network
     def get_actions(self, state, n):
@@ -266,7 +259,7 @@ class pbo:
         # Update sigma network
         for epoch in range(self.mu_epochs):
 
-            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.mu_gen)
+            obs, act, adv, n_gen = self.get_history(self.mu_gen)
             done = False
             btc  = 0
 
@@ -280,12 +273,8 @@ class pbo:
                 btc_obs  = obs[start:end]
                 btc_act  = act[start:end]
                 btc_adv  = adv[start:end]
-                btc_mu   = mu[start:end]
-                btc_sg   = sg[start:end]
-                btc_cr   = cr[start:end]
 
-                ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act,
-                                              btc_mu,  btc_sg,  btc_cr)
+                ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act)
 
         return ls_mu, nrm_mu
 
@@ -295,7 +284,7 @@ class pbo:
         # Update sigma network
         for epoch in range(self.sg_epochs):
 
-            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.sg_gen)
+            obs, act, adv, n_gen = self.get_history(self.sg_gen)
             done = False
             btc  = 0
 
@@ -310,12 +299,8 @@ class pbo:
                 btc_obs  = obs[start:end]
                 btc_act  = act[start:end]
                 btc_adv  = adv[start:end]
-                btc_mu   = mu[start:end]
-                btc_sg   = sg[start:end]
-                btc_cr   = cr[start:end]
 
-                ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act,
-                                              btc_mu,  btc_sg,  btc_cr)
+                ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act)
 
         return ls_sg, nrm_sg
 
@@ -328,7 +313,7 @@ class pbo:
         # Update sigma network
         for epoch in range(self.cr_epochs):
 
-            obs, act, adv, mu, sg, cr, n_gen = self.get_history(self.cr_gen)
+            obs, act, adv, n_gen = self.get_history(self.cr_gen)
             done = False
             btc  = 0
 
@@ -342,18 +327,14 @@ class pbo:
                 btc_obs  = obs[start:end]
                 btc_act  = act[start:end]
                 btc_adv  = adv[start:end]
-                btc_mu   = mu[start:end]
-                btc_sg   = sg[start:end]
-                btc_cr   = cr[start:end]
 
-                ls_cr, nrm_cr = self.train_cr(btc_obs, btc_adv, btc_act,
-                                              btc_mu,  btc_sg,  btc_cr)
+                ls_cr, nrm_cr = self.train_cr(btc_obs, btc_adv, btc_act)
 
         return ls_cr, nrm_cr
 
     # Train mu network
     @tf.function
-    def train_mu(self, obs, adv, act, mu, sg, cr):
+    def train_mu(self, obs, adv, act):
         var = self.net_mu.trainable_variables
         with tf.GradientTape() as tape:
             # Watch network variables
@@ -376,7 +357,7 @@ class pbo:
 
     # Train sg network
     @tf.function
-    def train_sg(self, obs, adv, act, mu, sg, cr):
+    def train_sg(self, obs, adv, act):
         var = self.net_sg.trainable_variables
         with tf.GradientTape() as tape:
             # Watch network variables
@@ -399,7 +380,7 @@ class pbo:
 
     # Train cr network
     @tf.function
-    def train_cr(self, obs, adv, act, mu, sg, cr):
+    def train_cr(self, obs, adv, act):
         var = self.net_cr.trainable_variables
         with tf.GradientTape() as tape:
             # Watch network variables
