@@ -11,7 +11,7 @@ import tensorflow_probability        as     tfp
 import tensorflow_addons             as     tfa
 from   tensorflow.keras              import Model
 from   tensorflow.keras.layers       import Dense
-from   tensorflow.keras.initializers import Orthogonal, Constant
+from   tensorflow.keras.initializers import Orthogonal
 
 # Define alias
 tf.keras.backend.set_floatx('float64')
@@ -41,7 +41,7 @@ class nn(Model):
                               dtype='float64'))
 
         # Define optimizer
-        self.opt = tk.optimizers.Adam(lr = lr)
+        self.opt = tk.optimizers.Adam(learning_rate = lr)
 
     # Network forward pass
     @tf.function
