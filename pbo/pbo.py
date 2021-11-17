@@ -239,7 +239,7 @@ class pbo:
             adv = np.maximum(adv, 0.0)
 
         # Store
-        self.adv[start:end] = adv
+        self.adv[start:end] = adv[:]
 
     # Train networks
     def train_networks(self):
@@ -423,6 +423,7 @@ class pbo:
 
     # Compute full cov pdf
     def get_cov_pdf(self, mu, sg, cr):
+
         cov  = self.get_cov(sg, cr)
         scl  = tf.linalg.cholesky(cov)
         pdf  = tfd.MultivariateNormalTriL(mu, scl)
