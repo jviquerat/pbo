@@ -8,7 +8,6 @@ warnings.filterwarnings('ignore',category=FutureWarning)
 import tensorflow                    as     tf
 import tensorflow.keras              as     tk
 import tensorflow_probability        as     tfp
-import tensorflow_addons             as     tfa
 from   tensorflow.keras              import Model
 from   tensorflow.keras.layers       import Dense
 from   tensorflow.keras.initializers import Orthogonal
