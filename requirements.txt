@@ -14,7 +14,6 @@ google-auth-oauthlib==0.4.2
 google-pasta==0.2.0
 grpcio==1.34.1
 gym==0.17.3
-gym-sloshing-perturb==0.0.1
 h5py==2.10.0
 idna==2.10
 Keras-Preprocessing==1.1.2
