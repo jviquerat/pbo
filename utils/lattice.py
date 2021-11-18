@@ -78,9 +78,9 @@ class Lattice:
         #if (not os.path.exists(self.path)):
         #    os.makedirs(self.path)
         if (not os.path.exists(self.output_dir)):
-            os.makedirs(self.output_dir)
+            os.makedirs(self.output_dir, exist_ok=True)
         if (not os.path.exists(self.png_dir)):
-            os.makedirs(self.png_dir)
+            os.makedirs(self.png_dir, exist_ok=True)
 
         # TRT parameters
         self.tau_p_lbm  = self.tau_lbm

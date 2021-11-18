@@ -36,7 +36,8 @@ class Shape:
         self.edgy           = edgy
         self.output_dir     = output_dir
 
-        if (not os.path.exists(self.output_dir)): os.makedirs(self.output_dir)
+        if (not os.path.exists(self.output_dir)):
+            os.makedirs(self.output_dir, exist_ok=True)
 
     ### ************************************************
     ### Reset object
@@ -185,7 +186,7 @@ class Shape:
         # Save image
         filename = self.output_dir+'/shape'
         if (not os.path.exists(filename)):
-            os.makedirs(filename)
+            os.makedirs(filename, exist_ok=True)
         filename = filename+'/'+self.name+'_'+str(ep)+'.png'
 
         plt.savefig(filename,
