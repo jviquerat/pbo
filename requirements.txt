@@ -13,8 +13,7 @@ google-auth==1.24.0
 google-auth-oauthlib==0.4.2
 google-pasta==0.2.0
 grpcio==1.34.1
-gym==0.17.3
-gym-sloshing-perturb==0.0.1
+gym==0.21.0
 h5py==2.10.0
 idna==2.10
 Keras-Preprocessing==1.1.2
@@ -34,7 +33,7 @@ python-dateutil==2.8.1
 requests==2.25.1
 requests-oauthlib==1.3.0
 rsa==4.7
-scipy==1.6.0
+scipy==1.5.4
 six==1.15.0
 tensorboard==2.4.1
 tensorboard-plugin-wit==1.7.0
