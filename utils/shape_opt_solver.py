@@ -20,8 +20,8 @@ def cfd_solve(x_min, x_max, y_min, y_max, Re,
     # L_lbm correponds to y length
     # u_lbm corresponds to max velocity
     Re_lbm      = Re
-    u_lbm       = 0.03
-    L_lbm       = 300
+    u_lbm       = 0.1
+    L_lbm       = 200
 
     # Deduce other parameters
     obs_size    = 1.0
@@ -38,8 +38,8 @@ def cfd_solve(x_min, x_max, y_min, y_max, Re,
     nx          = math.floor(ny*(x_max-x_min)/(y_max-y_min))
 
     # Other parameters
-    output_freq = 2000
-    dpi         = 300
+    output_freq = 5000
+    dpi         = 200
     IBB         = True
     stop        = 'obs'
     obs_cv_ct   = 1.0e-2

@@ -16,7 +16,7 @@ class shape_opt(base_env):
         # Fill structure
         self.name     = 'shape_env'
         self.n_pts    = 4
-        self.n_mv_pts = 3
+        self.n_mv_pts = 1
         self.vol_pt   = 3
         self.act_size = self.vol_pt*self.n_mv_pts
         self.obs_size = self.act_size
@@ -25,12 +25,12 @@ class shape_opt(base_env):
         self.max_rad  = 0.5
         self.min_edg  = 0.0
         self.max_edg  = 1.0
-        self.mv_pts   = [0,1,3]
-        self.x_min    =-2.0
-        self.x_max    = 10.0
-        self.y_min    =-2.0
-        self.y_max    = 2.0
-        self.Re       = 40.0
+        self.mv_pts   = [0]
+        self.x_min    =-1.0
+        self.x_max    = 8.5
+        self.y_min    =-1.0
+        self.y_max    = 1.5
+        self.Re       = 10.0
         self.path     = path
         self.lat_path = self.path+'/lattice'
         self.shape    = generate_shape(self.n_pts, [0.0,0.0], 'cylinder',

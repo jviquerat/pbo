@@ -5,7 +5,7 @@
     "n_gen": 150,
     "n_ind": 8,
     "n_avg": 1,
-    "n_cpu": 4,
+    "n_cpu": 8,
     "lr_mu": 5.0e-3,
     "lr_sg": 5.0e-3,
     "lr_cr": 1.0e-3,
