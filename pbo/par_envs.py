@@ -7,7 +7,7 @@ import multiprocessing as mp
 ###############################################
 ### A wrapper class for parallel environments
 class par_envs:
-    def __init__(self, env_name, n_cpu, path):
+    def __init__(self, env_name, n_cpu, output_path, env_path):
 
         # Init pipes and processes
         self.n_cpu   = n_cpu
@@ -21,7 +21,8 @@ class par_envs:
             process = mp.Process(target = worker,
                                  name   = name,
                                  args   = (env_name, name,
-                                           c_pipe, p_pipe, path))
+                                           c_pipe, p_pipe,
+                                           output_path, env_path))
 
             self.p_pipes.append(p_pipe)
             self.proc.append(process)
@@ -88,13 +89,13 @@ class par_envs:
         return rwd, acc
 
 # Target function for process
-def worker(env_name, name, pipe, p_pipe, path):
+def worker(env_name, name, pipe, p_pipe, output_path, env_path):
 
     # Build environment
-    sys.path.append(os.path.join(sys.path[0],'envs'))
+    sys.path.append(env_path)
     module    = __import__(env_name)
     env_build = getattr(module, env_name)
-    env       = env_build(path)
+    env       = env_build(output_path)
     p_pipe.close()
 
     # Execute tasks

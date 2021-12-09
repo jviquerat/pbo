@@ -8,7 +8,7 @@ from pbo.par_envs import *
 ########################
 # Process training
 ########################
-def launch_training(params, path, run):
+def train(params, output_path, env_path, run):
 
     # Sanitize input
     if (params.n_cpu > params.n_ind):
@@ -16,7 +16,10 @@ def launch_training(params, path, run):
         exit()
 
     # Declare environment and agent
-    env      = par_envs(params.env_name, params.n_cpu, path+'/'+str(run))
+    env      = par_envs(params.env_name,
+                        params.n_cpu,
+                        output_path+'/'+str(run),
+                        env_path)
     act_size = env.act_size
     obs_size = env.obs_size
     agent    = pbo(params, act_size, obs_size)
@@ -65,7 +68,7 @@ def launch_training(params, path, run):
         agent.store_learning_data(gen, ep, bst_rwd, bst_acc, data)
 
         # Write to files
-        agent.write_learning_data(path, run)
+        agent.write_learning_data(output_path, run)
 
         # Printings
         agent.print_generation(gen, bst_rwd)

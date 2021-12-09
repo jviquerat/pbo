@@ -7,26 +7,27 @@ import collections
 import numpy as np
 
 # Custom imports
-from pbo.training import *
+from pbo.train import *
 
 ########################
 # Parameters decoder to collect json file
 ########################
 def params_decoder(p_dict):
+
     return collections.namedtuple('X', p_dict.keys())(*p_dict.values())
 
 ########################
 # Average training over multiple runs
 ########################
-
-if __name__ == '__main__':
+def run():
 
     # Check command-line input for json file
     if (len(sys.argv) == 2):
         json_file = sys.argv[1]
+        env_path  = os.path.dirname(os.path.abspath(json_file))
     else:
         print('Command line error, please use as follows:')
-        print('python3 start.py my_file.json')
+        print('pbo path/to/my_env.json')
 
     # Read json parameter file
     with open(json_file, "r") as f:
@@ -45,25 +46,25 @@ if __name__ == '__main__':
     if (not os.path.exists(res_path)):
         os.makedirs(res_path)
 
-    t         = time.localtime()
-    path_time = time.strftime("%H-%M-%S", t)
-    path      = res_path+'/'+params.env_name+'_'+str(path_time)
-    os.makedirs(path, exist_ok=True)
+    t           = time.localtime()
+    path_time   = time.strftime("%H-%M-%S", t)
+    output_path = res_path+'/'+params.env_name+'_'+str(path_time)
+    os.makedirs(output_path, exist_ok=True)
 
     for i in range(params.n_avg):
         print('### Avg run #'+str(i))
         start_time = time.time()
-        launch_training(params, path, i)
+        train(params, output_path, env_path, i)
         dt = time.time() - start_time
         print('#   Elapsed time: {:.3f} seconds'.format(dt))
 
-        f   = np.loadtxt(path+'/pbo.dat')
+        f   = np.loadtxt(output_path+'/pbo.dat')
         gen = f[:params.n_gen,0]
         for j in range(n_data):
             data[i,:,j] = f[:params.n_gen,j+1]
 
     # Write to file
-    file_out = path+'/pbo_avg.dat'
+    file_out = output_path+'/pbo_avg.dat'
     array    = np.vstack(gen)
     for j in range(n_data):
         avg = np.mean(data[:,:,j], axis=0)
@@ -86,4 +87,4 @@ if __name__ == '__main__':
         array   = np.hstack((array,np.vstack(m)))
 
     np.savetxt(file_out, array, fmt='%.5e')
-    os.system('gnuplot -c plot/plot.gnu '+path+" "+params.avg_type)
+    os.system('gnuplot -c plot/plot.gnu '+output_path+" "+params.avg_type)
