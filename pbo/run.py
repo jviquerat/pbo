@@ -58,10 +58,10 @@ def run():
         dt = time.time() - start_time
         print('#   Elapsed time: {:.3f} seconds'.format(dt))
 
-        f   = np.loadtxt(output_path+'/pbo.dat')
+        f   = np.loadtxt(output_path+'/pbo_bst_'+str(i)+'.dat')
         gen = f[:params.n_gen,0]
         for j in range(n_data):
-            data[i,:,j] = f[:params.n_gen,j+1]
+            data[i,:,j] = f[:params.n_gen,j+2]
 
     # Write to file
     file_out = output_path+'/pbo_avg.dat'

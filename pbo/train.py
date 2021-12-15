@@ -27,7 +27,8 @@ def train(params, output_path, env_path, run):
     # Initialize parameters
     ep      = 0
     bst_acc = np.zeros(act_size)
-    bst_rwd = -1.0e10
+    bst_rwd = -1.0e1
+    bst_ep  = 0
 
     # Loop over generations
     for gen in range(params.n_gen):
@@ -49,23 +50,26 @@ def train(params, output_path, env_path, run):
             rwd, acc         = env.step(act, n, ep)
             agent.store_transition(obs, act, acc, rwd, mu, sig, cr, n)
 
-            # Store a few things
+            # Loop on individuals
             for ind in range(n):
-                agent.ep [ep] = ep
-                agent.gen[ep] = gen
-                ep           += 1
 
                 # Store best reward
                 if (rwd[ind] > bst_rwd):
+                    bst_ep  = ep
                     bst_rwd = rwd[ind]
                     bst_acc = acc[ind]
+
+                # Store ep and gen
+                agent.ep [ep] = ep
+                agent.gen[ep] = gen
+                ep           += 1
 
         # Train network after one generation
         agent.compute_advantages()
         data = agent.train_networks()
 
         # Store for future file printing
-        agent.store_learning_data(gen, ep, bst_rwd, bst_acc, data)
+        agent.store_learning_data(gen, bst_ep, bst_rwd, bst_acc, data)
 
         # Write to files
         agent.write_learning_data(output_path, run)
