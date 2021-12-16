@@ -4,7 +4,8 @@ import sys
 import json
 import time
 import collections
-import numpy as np
+import numpy             as np
+import matplotlib.pyplot as plt
 
 # Custom imports
 from pbo.train import *
@@ -34,17 +35,15 @@ def run():
         params = json.load(f, object_hook=params_decoder)
 
     # Storage arrays
-    res_path   = 'results'
-    n_data     = 1
-    gen        = np.zeros((              params.n_gen),         dtype=int)
-    data       = np.zeros((params.n_avg, params.n_gen, n_data), dtype=float)
-    avg_data   = np.zeros((              params.n_gen, n_data), dtype=float)
-    stdp_data  = np.zeros((              params.n_gen, n_data), dtype=float)
-    stdm_data  = np.zeros((              params.n_gen, n_data), dtype=float)
+    res_path  = 'results'
+    gen       = np.zeros((              params.n_gen), dtype=int)
+    rwd       = np.zeros((params.n_avg, params.n_gen), dtype=float)
+    avg_rwd   = np.zeros((              params.n_gen), dtype=float)
+    stdp_rwd  = np.zeros((              params.n_gen), dtype=float)
+    stdm_rwd  = np.zeros((              params.n_gen), dtype=float)
 
     # Open storage repositories
-    if (not os.path.exists(res_path)):
-        os.makedirs(res_path)
+    if (not os.path.exists(res_path)): os.makedirs(res_path)
 
     t           = time.localtime()
     path_time   = time.strftime("%H-%M-%S", t)
@@ -58,33 +57,39 @@ def run():
         dt = time.time() - start_time
         print('#   Elapsed time: {:.3f} seconds'.format(dt))
 
-        f   = np.loadtxt(output_path+'/pbo_bst_'+str(i))
-        gen = f[:params.n_gen,0]
-        for j in range(n_data):
-            data[i,:,j] = f[:params.n_gen,j+2]
+        f        = np.loadtxt(output_path+'/pbo_bst_'+str(i))
+        gen      = f[:params.n_gen,0]
+        rwd[i,:] = f[:params.n_gen,2]
 
     # Write to file
-    file_out = output_path+'/pbo_avg.dat'
-    array    = np.vstack(gen)
-    for j in range(n_data):
-        avg = np.mean(data[:,:,j], axis=0)
-        std = np.std (data[:,:,j], axis=0)
+    f     = output_path+'/pbo_avg.dat'
+    array = np.vstack(gen)
+    avg   = np.mean(rwd[:,:], axis=0)
+    std   = np.std (rwd[:,:], axis=0)
 
-        if ((j == 0) and (params.avg_type == "log")):
-            log_avg = np.log(avg)
-            log_std = 0.434*std/avg
-            log_p   = log_avg + log_std
-            log_m   = log_avg - log_std
-            p       = np.exp(log_p)
-            m       = np.exp(log_m)
-        else:
-            avg = np.mean(data[:,:,j], axis=0)
-            std = np.std (data[:,:,j], axis=0)
-            p   = avg + std
-            m   = avg - std
-        array   = np.hstack((array,np.vstack(avg)))
-        array   = np.hstack((array,np.vstack(p)))
-        array   = np.hstack((array,np.vstack(m)))
+    if (params.avg_type == "log"):
+        log_avg = np.log(avg)
+        log_std = 0.434*std/avg
+        log_p   = log_avg + log_std
+        log_m   = log_avg - log_std
+        p       = np.exp(log_p)
+        m       = np.exp(log_m)
+    else:
+        p       = avg + std
+        m       = avg - std
 
-    np.savetxt(file_out, array, fmt='%.5e')
-    os.system('gnuplot -c plot/plot.gnu '+output_path+" "+params.avg_type)
+    array = np.hstack((array,np.vstack(avg)))
+    array = np.hstack((array,np.vstack(p)))
+    array = np.hstack((array,np.vstack(m)))
+
+    np.savetxt(f, array, fmt='%.5e')
+
+    # Plot avg and std
+    plt.xlabel('generations')
+    plt.ylabel('reward')
+    plt.yscale(params.avg_type)
+    plt.plot(avg, label='avg')
+    plt.fill_between(gen, p, m, alpha=0.4, label="+/- std")
+    plt.grid(True)
+    plt.legend()
+    plt.savefig('pbo_avg.png', bbox_inches='tight')
