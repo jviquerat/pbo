@@ -66,10 +66,10 @@ def train(params, output_path, env_path, run):
 
         # Train network after one generation
         agent.compute_advantages()
-        data = agent.train_networks()
+        agent.train_networks()
 
         # Store for future file printing
-        agent.store_learning_data(gen, bst_ep, bst_rwd, bst_acc, data)
+        agent.store_learning_data(gen, bst_ep, bst_rwd, bst_acc)
 
         # Write to files
         agent.write_learning_data(output_path, run)

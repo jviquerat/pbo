@@ -35,7 +35,7 @@ def run():
 
     # Storage arrays
     res_path   = 'results'
-    n_data     = 7
+    n_data     = 1
     gen        = np.zeros((              params.n_gen),         dtype=int)
     data       = np.zeros((params.n_avg, params.n_gen, n_data), dtype=float)
     avg_data   = np.zeros((              params.n_gen, n_data), dtype=float)
@@ -58,7 +58,7 @@ def run():
         dt = time.time() - start_time
         print('#   Elapsed time: {:.3f} seconds'.format(dt))
 
-        f   = np.loadtxt(output_path+'/pbo_bst_'+str(i)+'.dat')
+        f   = np.loadtxt(output_path+'/pbo_bst_'+str(i))
         gen = f[:params.n_gen,0]
         for j in range(n_data):
             data[i,:,j] = f[:params.n_gen,j+2]

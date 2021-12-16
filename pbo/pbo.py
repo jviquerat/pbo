@@ -74,10 +74,10 @@ class pbo:
         self.sg      = np.zeros((self.size, self.sg_dim), dtype=np.float64)
         self.cr      = np.zeros((self.size, self.cr_dim), dtype=np.float64)
 
-        self.bst_acc = np.zeros((self.n_gen,self.act_dim),dtype=np.float64)
-        self.bst_rwd = np.zeros( self.n_gen,              dtype=np.float64)
         self.bst_gen = np.zeros( self.n_gen,              dtype=np.int32)
         self.bst_ep  = np.zeros( self.n_gen,              dtype=np.int32)
+        self.bst_acc = np.zeros((self.n_gen,self.act_dim),dtype=np.float64)
+        self.bst_rwd = np.zeros( self.n_gen,              dtype=np.float64)
 
         self.ls_mu   = np.zeros( self.n_gen,              dtype=np.float64)
         self.ls_sg   = np.zeros( self.n_gen,              dtype=np.float64)
@@ -85,9 +85,6 @@ class pbo:
         self.nrm_mu  = np.zeros( self.n_gen,              dtype=np.float64)
         self.nrm_sg  = np.zeros( self.n_gen,              dtype=np.float64)
         self.nrm_cr  = np.zeros( self.n_gen,              dtype=np.float64)
-        self.lr_mu   = np.zeros( self.n_gen,              dtype=np.float64)
-        self.lr_sg   = np.zeros( self.n_gen,              dtype=np.float64)
-        self.lr_cr   = np.zeros( self.n_gen,              dtype=np.float64)
 
     # Get data history
     def get_history(self, n_gen):
@@ -156,7 +153,6 @@ class pbo:
     # Printings
     def print_generation(self, gen, rwd):
 
-        # Print
         if (gen == self.n_gen-1): end = '\n'
         if (gen != self.n_gen-1): end = '\r'
         print('#   Generation #'+str(gen)+', best reward '+str(rwd)+'                 ', end=end)
@@ -164,7 +160,6 @@ class pbo:
     # Store transitions into buffer
     def store_transition(self, obs, act, acc, rwd, mu, sg, cr, n):
 
-        # Fill buffers
         for cpu in range(n):
             self.obs[self.idx] = obs[cpu]
             self.act[self.idx] = act[cpu]
@@ -176,19 +171,12 @@ class pbo:
             self.idx          += 1
 
     # Store learning data
-    def store_learning_data(self, gen, bst_ep, bst_rwd, bst_acc, data):
+    def store_learning_data(self, gen, bst_ep, bst_rwd, bst_acc):
 
-        # Store a few things
         self.bst_gen[gen] = gen
         self.bst_ep [gen] = bst_ep
         self.bst_rwd[gen] = bst_rwd
         self.bst_acc[gen] = bst_acc
-        self.ls_mu  [gen] = data[0]
-        self.ls_sg  [gen] = data[1]
-        self.ls_cr  [gen] = data[2]
-        self.nrm_mu [gen] = data[3]
-        self.nrm_sg [gen] = data[4]
-        self.nrm_cr [gen] = data[5]
 
     # Write learning data
     def write_learning_data(self, path, run):
@@ -206,17 +194,11 @@ class pbo:
                    fmt='%.5e')
 
         # Data for future averaging
-        filename = path+'/pbo_bst_'+str(run)+'.dat'
+        filename = path+'/pbo_bst_'+str(run)
         np.savetxt(filename,
                    np.hstack([np.reshape(self.bst_gen,        (-1,1)),
                               np.reshape(self.bst_ep,         (-1,1)),
                               np.reshape(self.bst_rwd*(-1.0), (-1,1)),
-                              np.reshape(self.ls_mu,          (-1,1)),
-                              np.reshape(self.ls_sg,          (-1,1)),
-                              np.reshape(self.ls_cr,          (-1,1)),
-                              np.reshape(self.nrm_mu,         (-1,1)),
-                              np.reshape(self.nrm_sg,         (-1,1)),
-                              np.reshape(self.nrm_cr,         (-1,1)),
                               self.bst_acc]),
                    fmt='%.5e')
 
@@ -245,19 +227,14 @@ class pbo:
     # Train networks
     def train_networks(self):
 
-        # Train
-        ls_sg, nrm_sg = self.train_loop_sg()
-        ls_cr, nrm_cr = self.train_loop_cr()
-        ls_mu, nrm_mu = self.train_loop_mu()
-
-        # Return infos
-        return [ ls_mu,  ls_sg,  ls_cr,
-                nrm_mu, nrm_sg, nrm_cr]
+        self.train_loop_sg()
+        self.train_loop_cr()
+        self.train_loop_mu()
 
     # Train loop for mu
     def train_loop_mu(self):
 
-        # Update sigma network
+        # Loop on epochs
         for epoch in range(self.mu_epochs):
 
             obs, act, adv, n_gen = self.get_history(self.mu_gen)
@@ -275,14 +252,12 @@ class pbo:
                 btc_act  = act[start:end]
                 btc_adv  = adv[start:end]
 
-                ls_mu, nrm_mu = self.train_mu(btc_obs, btc_adv, btc_act)
-
-        return ls_mu, nrm_mu
+                self.train_mu(btc_obs, btc_adv, btc_act)
 
     # Train loop for sg
     def train_loop_sg(self):
 
-        # Update sigma network
+        # Loop on epochs
         for epoch in range(self.sg_epochs):
 
             obs, act, adv, n_gen = self.get_history(self.sg_gen)
@@ -301,9 +276,7 @@ class pbo:
                 btc_act  = act[start:end]
                 btc_adv  = adv[start:end]
 
-                ls_sg, nrm_sg = self.train_sg(btc_obs, btc_adv, btc_act)
-
-        return ls_sg, nrm_sg
+                self.train_sg(btc_obs, btc_adv, btc_act)
 
     # Train loop for cr
     def train_loop_cr(self):
@@ -311,7 +284,7 @@ class pbo:
         # If correlations are not used
         if (self.pdf != 'cma-full'): return 1.0, 1.0
 
-        # Update sigma network
+        # Loop on epochs
         for epoch in range(self.cr_epochs):
 
             obs, act, adv, n_gen = self.get_history(self.cr_gen)
@@ -329,78 +302,61 @@ class pbo:
                 btc_act  = act[start:end]
                 btc_adv  = adv[start:end]
 
-                ls_cr, nrm_cr = self.train_cr(btc_obs, btc_adv, btc_act)
-
-        return ls_cr, nrm_cr
+                self.train_cr(btc_obs, btc_adv, btc_act)
 
     # Train mu network
     @tf.function
     def train_mu(self, obs, adv, act):
+
         var = self.net_mu.trainable_variables
         with tf.GradientTape() as tape:
-            # Watch network variables
             tape.watch(var)
 
-            # Network forward pass
             cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
             sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
             mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
-            # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg, cr)
 
-        # Apply gradients
         grads = tape.gradient(loss, var)
         norm  = tf.linalg.global_norm(grads)
         self.net_mu.opt.apply_gradients(zip(grads, var))
 
-        return loss, norm
-
     # Train sg network
     @tf.function
     def train_sg(self, obs, adv, act):
+
         var = self.net_sg.trainable_variables
         with tf.GradientTape() as tape:
-            # Watch network variables
             tape.watch(var)
 
-            # Network forward pass
             cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
             sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
             mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
-            # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg, cr)
 
-        # Apply gradients
         grads = tape.gradient(loss, var)
         norm  = tf.linalg.global_norm(grads)
         self.net_sg.opt.apply_gradients(zip(grads, var))
 
-        return loss, norm
-
     # Train cr network
     @tf.function
     def train_cr(self, obs, adv, act):
+
         var = self.net_cr.trainable_variables
         with tf.GradientTape() as tape:
-            # Watch network variables
             tape.watch(var)
 
-            # Network forward pass
             cr = tf.convert_to_tensor(self.net_cr.call(obs), tf.float64)
             sg = tf.convert_to_tensor(self.net_sg.call(obs), tf.float64)
             mu = tf.convert_to_tensor(self.net_mu.call(obs), tf.float64)
 
-            # Compute loss
             loss = self.get_loss(obs, adv, act, mu, sg, cr)
 
-        # Apply gradients
         grads = tape.gradient(loss, var)
         norm  = tf.linalg.global_norm(grads)
         self.net_cr.opt.apply_gradients(zip(grads, var))
-
-        return loss, norm
 
     # Compute loss
     def get_loss(self, obs, adv, act, mu, sg, cr):
@@ -434,7 +390,6 @@ class pbo:
     # Compute covariance matrix
     def get_cov(self, sg, cr):
 
-        ### Use correlative angle matrix ###
         # Extract sigmas and thetas
         sigmas = 0.85*sg
         thetas = cr*math.pi
