@@ -27,7 +27,7 @@ def train(params, output_path, env_path, run):
     # Initialize parameters
     ep      = 0
     bst_acc = np.zeros(act_size)
-    bst_rwd = -1.0e1
+    bst_rwd =-1.0e8
     bst_ep  = 0
 
     # Loop over generations
