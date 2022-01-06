@@ -23,6 +23,9 @@ class pbo:
         self.size       = self.n_gen*self.n_ind
         self.n_cpu      = params.n_cpu
 
+        # Handle act_dim=1
+        if (self.act_dim==1): self.pdf = 'es'
+
         self.mu_gen     = params.mu_gen
         self.sg_gen     = params.sg_gen
         self.cr_gen     = params.cr_gen
