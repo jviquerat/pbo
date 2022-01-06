@@ -82,13 +82,6 @@ class pbo:
         self.bst_acc = np.zeros((self.n_gen,self.act_dim),dtype=np.float64)
         self.bst_rwd = np.zeros( self.n_gen,              dtype=np.float64)
 
-        self.ls_mu   = np.zeros( self.n_gen,              dtype=np.float64)
-        self.ls_sg   = np.zeros( self.n_gen,              dtype=np.float64)
-        self.ls_cr   = np.zeros( self.n_gen,              dtype=np.float64)
-        self.nrm_mu  = np.zeros( self.n_gen,              dtype=np.float64)
-        self.nrm_sg  = np.zeros( self.n_gen,              dtype=np.float64)
-        self.nrm_cr  = np.zeros( self.n_gen,              dtype=np.float64)
-
     # Get data history
     def get_history(self, n_gen):
 
