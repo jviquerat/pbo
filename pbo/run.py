@@ -85,11 +85,24 @@ def run():
     np.savetxt(f, array, fmt='%.5e')
 
     # Plot avg and std
+    plt.rcParams['font.size'] = 10
+    plt.rcParams['axes.labelsize'] = 10
+    plt.rcParams['xtick.labelsize'] = 10
+    plt.rcParams['ytick.labelsize'] = 10
+    plt.rcParams['legend.fontsize'] = 10
+    plt.rcParams['figure.titlesize'] = 12
+    plt.rcParams['figure.titleweight'] = 'bold'
+
+    plt.title('reward')
     plt.xlabel('generations')
-    plt.ylabel('reward')
     plt.yscale(params.avg_type)
-    plt.plot(avg, label='avg')
-    plt.fill_between(gen, p, m, alpha=0.4, label="+/- std")
+    plt.plot(avg,
+             color='blue',
+             label='avg')
+    plt.fill_between(gen, p, m,
+                     alpha=0.4,
+                     color='blue',
+                     label="+/- std")
     plt.grid(True)
     plt.legend()
-    plt.savefig('pbo_avg.png', bbox_inches='tight')
+    plt.savefig('pbo.png', bbox_inches='tight')
