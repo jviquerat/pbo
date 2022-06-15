@@ -54,7 +54,7 @@ def train(params, output_path, env_path, run):
             for ind in range(n):
 
                 # Store best reward
-                if (rwd[ind] > bst_rwd):
+                if (rwd[ind] >= bst_rwd):
                     bst_ep  = ep
                     bst_rwd = rwd[ind]
                     bst_acc = acc[ind]
@@ -75,7 +75,7 @@ def train(params, output_path, env_path, run):
         agent.write_learning_data(output_path, run)
 
         # Printings
-        agent.print_generation(gen, bst_rwd)
+        agent.print_generation(gen, bst_ep, bst_rwd[0])
 
     # Close environments
     env.close()
