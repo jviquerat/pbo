@@ -44,17 +44,17 @@ class pbo:
         # Build mu network
         self.net_mu     = nn(params.mu_arch,
                              self.mu_dim,
-                             'tanh',
+                             'relu',
                              'tanh',
                              self.lr_mu)
         self.net_sg     = nn(params.sg_arch,
                              self.sg_dim,
-                             'sigmoid',
+                             'tanh',
                              'sigmoid',
                              self.lr_sg)
         self.net_cr     = nn(params.cr_arch,
                              self.cr_dim,
-                             'sigmoid',
+                             'tanh',
                              'sigmoid',
                              self.lr_cr)
 
