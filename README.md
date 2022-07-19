@@ -42,7 +42,7 @@ The Rosenbrock function is here defined in `[-2,2]x[-2,2]`. It contains a very n
   <img width="700" alt="" src="pbo/save/rosenbrock/rosenbrock.gif">
 </p>
 
-## Parabola function on triangular domain
+### Parabola function on triangular domain
 
 To test the case of dependant variables, we consider a parabola function on a triangular domain, with `x` in `[0,1]` and `y` in `[0,1-x]`. The parabola has its minimum in `[0.1,0.8]`, while the starting point is located in `[0.2,0.2]`:
 
