@@ -59,7 +59,7 @@ Optimal packing of geometrical shapes (see <a href="https://erich-friedman.githu
 The goal is to pack 6 circles in the square of smallest side (hence 12 degrees of freedom). The solution is obviously known, and the optimal value is `s = 5.328+`. Best PBO result was `s = 5.3315` after 800 generations.
 
 <p align="center">
-  <img width="400" alt="" src="pbo/save/6_circles_in_square/6_circles_in_square.gif">
+  <img width="300" alt="" src="pbo/save/6_circles_in_square/6_circles_in_square.gif">
 </p>
 
 ## Parametric control laws
