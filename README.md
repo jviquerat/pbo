@@ -31,7 +31,7 @@ Simple minimum-finding on textbook analytical functions (see more in the paper).
 We consider the minimization on a parabola defined in `[-5,5]x[-5,5]`. Below is the course of a single run, generation after generation, with a starting point in `[2.5,2.5]`:
 
 <p align="center">
-  <img width="700" alt="" src="pbo/save/parabola/parabola.gif">
+  <img width="500" alt="" src="pbo/save/parabola/parabola.gif">
 </p>
 
 ### Rosenbrock function
@@ -39,15 +39,7 @@ We consider the minimization on a parabola defined in `[-5,5]x[-5,5]`. Below is 
 The Rosenbrock function is here defined in `[-2,2]x[-2,2]`. It contains a very narrow valley, with a minimum in `[1,1]`. The shape of the valley makes it a hard optimization problem for many algorithms. Here is the course of a single run, generation after generation, with a starting point in `[0.0,-1.0]`:
 
 <p align="center">
-  <img width="700" alt="" src="pbo/save/rosenbrock/rosenbrock.gif">
-</p>
-
-### Parabola function on triangular domain
-
-To test the case of dependant variables, we consider a parabola function on a triangular domain, with `x` in `[0,1]` and `y` in `[0,1-x]`. The parabola has its minimum in `[0.1,0.8]`, while the starting point is located in `[0.2,0.2]`:
-
-<p align="center">
-  <img width="700" alt="" src="pbo/save/parabola_triangle/parabola_triangle.gif">
+  <img width="500" alt="" src="pbo/save/rosenbrock/rosenbrock.gif">
 </p>
 
 ## Packing
@@ -78,8 +70,7 @@ We make use of the following non-linear control with four free parameters:
 Two control cases are designed: the first one consists in forcing the system to stay in the x<0 quadrant, while the second one consists in maximizing the number of sign changes (cases inspired from <a href="https://research.tue.nl/files/146730787/Beintema_afstudeerverslag.pdf">this thesis</a>). Below is a comparison between the two controlled cases.
 
 <p align="center">
-  <img width="450" alt="" src="pbo/save/lorenz_stabilizer/lorenz.gif">
-  <img width="450" alt="" src="pbo/save/lorenz_oscillator/lorenz.gif">
+  <img width="400" alt="" src="pbo/save/lorenz_stabilizer/lorenz.gif"> <img width="400" alt="" src="pbo/save/lorenz_oscillator/lorenz.gif">
 </p>
 
 ### Cartpole
