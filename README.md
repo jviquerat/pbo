@@ -31,7 +31,7 @@ Simple minimum-finding on textbook analytical functions (see more in the paper).
 We consider the minimization on a parabola defined in `[-5,5]x[-5,5]`. Below is the course of a single run, generation after generation, with a starting point in `[2.5,2.5]`:
 
 <p align="center">
-  <img width="500" alt="" src="pbo/save/parabola/parabola.gif">
+  <img width="600" alt="" src="pbo/save/parabola/parabola.gif">
 </p>
 
 ### Rosenbrock function
@@ -39,7 +39,7 @@ We consider the minimization on a parabola defined in `[-5,5]x[-5,5]`. Below is 
 The Rosenbrock function is here defined in `[-2,2]x[-2,2]`. It contains a very narrow valley, with a minimum in `[1,1]`. The shape of the valley makes it a hard optimization problem for many algorithms. Here is the course of a single run, generation after generation, with a starting point in `[0.0,-1.0]`:
 
 <p align="center">
-  <img width="500" alt="" src="pbo/save/rosenbrock/rosenbrock.gif">
+  <img width="600" alt="" src="pbo/save/rosenbrock/rosenbrock.gif">
 </p>
 
 ## Packing
