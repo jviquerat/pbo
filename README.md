@@ -59,14 +59,6 @@ Optimal packing of geometrical shapes (see <a href="https://erich-friedman.githu
 | <img width="300" alt="" src="pbo/save/6_circles_in_square/6_circles_in_square.gif"> | **6 circles in square**: the optimal value is `s = 5.328+`, best PBO result was `s = 5.331` after 800 generations. |
 | <img width="300" alt="" src="pbo/save/10_circles_in_square/10_circles_in_square.gif"> | **10 circles in square**: the optimal value is `s = 6.747+`, best PBO result was `s = 6.754` after 1000 generations |
 
-### 6 circles in a square
-
-The goal is to pack 6 circles in the square of smallest side (hence 12 degrees of freedom). The solution is obviously known, and the optimal value is `s = 5.328+`. Best PBO result was `s = 5.3315` after 800 generations.
-
-<p align="center">
-  <img width="300" alt="" src="pbo/save/6_circles_in_square/6_circles_in_square.gif">
-</p>
-
 ## Parametric control laws
 
 ### Chaotic Lorenz attractor
