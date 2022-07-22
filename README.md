@@ -48,9 +48,9 @@ Optimal packing of geometrical shapes (see <a href="https://erich-friedman.githu
 
 | Environment | Description |
 | :---------- | :---------- |
-| <img width="300" alt="" src="pbo/save/6_circles_in_square/6_circles_in_square.gif"> | **6 circles in square** (12 degrees of freedom): the optimal value is `s = 5.328+`, best PBO result was `s = 5.331` after 800 generations. |
-| <img width="300" alt="" src="pbo/save/10_circles_in_square/10_circles_in_square.gif"> | **10 circles in square** (20 degrees of freedom): the optimal value is `s = 6.747+`, best PBO result was `s = 6.754` after 1000 generations |
-| <img width="300" alt="" src="pbo/save/3_triangles_in_square/3_triangles_in_square.gif"> | **3 equilateral triangles in square** (9 degrees of freedom): the optimal value is `s = 1.478+`, best PBO result was `s = 1.478+` after 1000 generations |
+| <img width="200" alt="" src="pbo/save/6_circles_in_square/6_circles_in_square.gif"> | **6 circles in square** (12 degrees of freedom): the optimal value is `s = 5.328+`, best PBO result was `s = 5.331` after 800 generations. |
+| <img width="200" alt="" src="pbo/save/10_circles_in_square/10_circles_in_square.gif"> | **10 circles in square** (20 degrees of freedom): the optimal value is `s = 6.747+`, best PBO result was `s = 6.754` after 1000 generations |
+| <img width="200" alt="" src="pbo/save/3_triangles_in_square/3_triangles_in_square.gif"> | **3 equilateral triangles in square** (9 degrees of freedom): the optimal value is `s = 1.478+`, best PBO result was `s = 1.478+` after 1000 generations |
 
 ## Parametric control laws
 
