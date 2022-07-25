@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 # Custom imports
-from envs.base_env import base_env
+from base_env import base_env
 
 ###############################################
 ### Environment for rosenbrock_2d function
