@@ -44,13 +44,14 @@ The Rosenbrock function is here defined in `[-2,2]x[-2,2]`. It contains a very n
 
 ## Packing
 
-Optimal packing of geometrical shapes (see <a href="https://erich-friedman.github.io/packing/index.html">here</a> for much, much more). The goal is to pack unit shapes in another shape of smallest dimension. Most solutions are already known.
+Optimal packing of geometrical shapes (see <a href="https://erich-friedman.github.io/packing/index.html">here</a> for much, much more). The goal is to pack unit shapes in the square of smallest side. Most solutions are already known.
 
 | Environment | Description |
 | :---------- | :---------- |
 | <img width="200" alt="" src="pbo/save/6_circles_in_square/6_circles_in_square.gif"> | **6 circles in square** (12 degrees of freedom): the optimal value is `s = 5.328+`, best PBO result was `s = 5.331` after 800 generations. |
 | <img width="200" alt="" src="pbo/save/10_circles_in_square/10_circles_in_square.gif"> | **10 circles in square** (20 degrees of freedom): the optimal value is `s = 6.747+`, best PBO result was `s = 6.754` after 1000 generations |
 | <img width="200" alt="" src="pbo/save/3_triangles_in_square/3_triangles_in_square.gif"> | **3 equilateral triangles in square** (9 degrees of freedom): the optimal value is `s = 1.478+`, best PBO result was `s = 1.478+` after 1000 generations |
+| <img width="200" alt="" src="pbo/save/5_triangles_in_square/5_triangles_in_square.gif"> | **5 equilateral triangles in square** (15 degrees of freedom): the optimal value is `s = 1.803+`, best PBO result was `s = 1.807+` after 2500 generations |
 
 ## Parametric control laws
 
