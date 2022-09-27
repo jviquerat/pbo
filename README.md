@@ -78,7 +78,3 @@ Two control cases are designed: the first one consists in forcing the system to 
 <p align="center">
   <img width="400" alt="" src="pbo/save/lorenz_stabilizer/lorenz.gif"> <img width="400" alt="" src="pbo/save/lorenz_oscillator/lorenz.gif">
 </p>
-
-### Cartpole
-
-Visuals to do
