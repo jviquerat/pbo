@@ -2,8 +2,8 @@
 import numpy as np
 
 # Custom imports
-from pbo.pbo      import *
-from pbo.par_envs import *
+from pbo.src.factory  import *
+from pbo.src.par_envs import *
 
 ########################
 # Process training
@@ -22,7 +22,10 @@ def train(params, output_path, env_path, run):
                         env_path)
     act_size = env.act_size
     obs_size = env.obs_size
-    agent    = pbo(params, act_size, obs_size)
+    agent = pbo_factory.create(params.type,
+                               params  = params,
+                               act_dim = act_size,
+                               obs_dim = obs_size)
 
     # Initialize parameters
     ep      = 0
