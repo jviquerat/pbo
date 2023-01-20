@@ -8,7 +8,7 @@ import numpy             as np
 import matplotlib.pyplot as plt
 
 # Custom imports
-from pbo.train import *
+from pbo.src.train import *
 
 ########################
 # Parameters decoder to collect json file
