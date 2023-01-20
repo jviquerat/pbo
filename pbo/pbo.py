@@ -73,9 +73,6 @@ class pbo:
         self.acc     = np.zeros((self.size, self.act_dim),dtype=np.float64)
         self.adv     = np.zeros( self.size,               dtype=np.float64)
         self.rwd     = np.zeros( self.size,               dtype=np.float64)
-        self.mu      = np.zeros((self.size, self.mu_dim), dtype=np.float64)
-        self.sg      = np.zeros((self.size, self.sg_dim), dtype=np.float64)
-        self.cr      = np.zeros((self.size, self.cr_dim), dtype=np.float64)
 
         self.bst_gen = np.zeros( self.n_gen,              dtype=np.int32)
         self.bst_ep  = np.zeros( self.n_gen,              dtype=np.int32)
@@ -138,13 +135,7 @@ class pbo:
         ac = np.asarray(ac)
         ac = np.clip(ac, -1.0, 1.0)
 
-        # For convenience, mu and sg are returned
-        # with the same dimension as actions
-        mu = np.tile(mu,(n,1))
-        sg = np.tile(sg,(n,1))
-        cr = np.tile(cr,(n,1))
-
-        return ac, mu, sg, cr
+        return ac
 
     # Printings
     def print_generation(self, gen, ep, rwd):
@@ -154,16 +145,13 @@ class pbo:
         print('#   Generation #'+str(gen)+', best reward '+str(rwd)+' at ep '+str(ep)+'                 ', end=end)
 
     # Store transitions into buffer
-    def store_transition(self, obs, act, acc, rwd, mu, sg, cr, n):
+    def store_transition(self, obs, act, acc, rwd, n):
 
         for cpu in range(n):
             self.obs[self.idx] = obs[cpu]
             self.act[self.idx] = act[cpu]
             self.acc[self.idx] = acc[cpu]
             self.rwd[self.idx] = rwd[cpu]
-            self.mu [self.idx] = mu [cpu]
-            self.sg [self.idx] = sg [cpu]
-            self.cr [self.idx] = cr [cpu]
             self.idx          += 1
 
     # Store learning data
@@ -183,10 +171,7 @@ class pbo:
                    np.hstack([np.reshape(self.gen,        (-1,1)),
                               np.reshape(self.ep,         (-1,1)),
                               np.reshape(self.rwd*(-1.0), (-1,1)),
-                              self.acc,
-                              self.mu,
-                              self.sg,
-                              self.cr]),
+                              self.acc]),
                    fmt='%.5e')
 
         # Data for future averaging
