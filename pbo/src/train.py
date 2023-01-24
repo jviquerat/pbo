@@ -43,6 +43,9 @@ def train(params, output_path, env_path, run):
         n_loop = params.n_cpu*np.ones((size), dtype=np.int16)
         if (rest > 0): n_loop[-1] = rest
 
+        # Initialize avg rwd for this generation
+        avg_rwd = 0
+
         # Loop over individuals
         for i in range(size):
 
@@ -61,18 +64,21 @@ def train(params, output_path, env_path, run):
                     bst_ep  = ep
                     bst_rwd = rwd[ind]
                     bst_acc = acc[ind]
-
+                
                 # Store ep and gen
                 agent.ep [ep] = ep
                 agent.gen[ep] = gen
                 ep           += 1
+
+            # Store avg reward
+            avg_rwd += np.sum(rwd)
 
         # Train network after one generation
         agent.compute_advantages()
         agent.train_networks()
 
         # Store for future file printing
-        agent.store_learning_data(gen, bst_ep, bst_rwd, bst_acc)
+        agent.store_learning_data(gen, bst_ep, bst_rwd, bst_acc, avg_rwd/params.n_ind)
 
         # Write to files
         agent.write_learning_data(output_path, run)

@@ -1,5 +1,6 @@
 {
     "env_name": "lorenz_stabilizer",
+    "type": "continuous",
     "pdf": "cma-full",
     "avg_type": "linear",
     "n_gen": 200,

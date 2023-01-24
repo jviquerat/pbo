@@ -1,5 +1,6 @@
 {
     "env_name": "cartpole",
+    "type": "continuous",
     "pdf": "cma-full",
     "avg_type": "linear",
     "n_gen": 100,

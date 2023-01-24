@@ -74,6 +74,7 @@ class continuous(base_pbo):
         self.bst_ep  = np.zeros( self.n_gen,              dtype=np.int32)
         self.bst_acc = np.zeros((self.n_gen,self.act_dim),dtype=np.float64)
         self.bst_rwd = np.zeros( self.n_gen,              dtype=np.float64)
+        self.avg_rwd = np.zeros( self.n_gen,              dtype=np.float64)
 
     # Get actions from network
     def get_actions(self, state, n):

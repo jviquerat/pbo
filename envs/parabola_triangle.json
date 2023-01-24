@@ -1,5 +1,6 @@
 {
     "env_name": "parabola_triangle",
+    "type": "continuous",
     "pdf": "cma-full",
     "avg_type": "log",
     "n_gen": 50,

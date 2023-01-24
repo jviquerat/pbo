@@ -1,5 +1,6 @@
 {
     "env_name": "lorenz_oscillator",
+    "type": "continuous",
     "pdf": "cma-full",
     "avg_type": "linear",
     "n_gen": 400,
