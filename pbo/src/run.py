@@ -38,7 +38,7 @@ def run():
     res_path  = 'results'
     gen       = np.zeros((              params.n_gen), dtype=int)
     rwd       = np.zeros((params.n_avg, params.n_gen), dtype=float)
-    avg_rwd   = np.zeros((              params.n_gen), dtype=float)
+    avg_rwd   = np.zeros((params.n_avg, params.n_gen), dtype=float)
     stdp_rwd  = np.zeros((              params.n_gen), dtype=float)
     stdm_rwd  = np.zeros((              params.n_gen), dtype=float)
 
@@ -57,15 +57,21 @@ def run():
         dt = time.time() - start_time
         print('#   Elapsed time: {:.3f} seconds'.format(dt))
 
-        f        = np.loadtxt(output_path+'/pbo_bst_'+str(i))
-        gen      = f[:params.n_gen,0]
-        rwd[i,:] = f[:params.n_gen,2]
+        f            = np.loadtxt(output_path+'/pbo_bst_'+str(i))
+        gen          = f[:params.n_gen,0]
+        rwd[i,:]     = f[:params.n_gen,2]
+
+        f_avg        = np.loadtxt(output_path+'/pbo_avg_'+str(i))
+        avg_rwd[i,:] = f_avg[:params.n_gen,1]
 
     # Write to file
     f     = output_path+'/pbo_avg.dat'
     array = np.vstack(gen)
     avg   = np.mean(rwd[:,:], axis=0)
     std   = np.std (rwd[:,:], axis=0)
+
+    avg_avg   = np.mean(avg_rwd[:,:], axis=0)
+    avg_std   = np.std (avg_rwd[:,:], axis=0)
 
     if (params.avg_type == "log"):
         log_avg = np.log(avg)
@@ -74,9 +80,20 @@ def run():
         log_m   = log_avg - log_std
         p       = np.exp(log_p)
         m       = np.exp(log_m)
+
+        # for average rwd
+        log_avg = np.log(avg_avg)
+        log_std = 0.434*avg_std/avg_avg
+        log_p   = log_avg + log_std
+        log_m   = log_avg - log_std
+        p_bis       = np.exp(log_p)
+        m_bis       = np.exp(log_m)
+
     else:
         p       = avg + std
         m       = avg - std
+        p_bis   = avg_avg + avg_std
+        m_bis   = avg_avg - avg_std
 
     array = np.hstack((array,np.vstack(avg)))
     array = np.hstack((array,np.vstack(p)))
@@ -98,11 +115,17 @@ def run():
     plt.yscale(params.avg_type)
     plt.plot(avg,
              color='blue',
-             label='avg')
+             label='best')
     plt.fill_between(gen, p, m,
                      alpha=0.4,
-                     color='blue',
-                     label="+/- std")
+                     color='blue')
+
+    plt.plot(avg_avg,
+             color='red',
+             label='avg')
+    plt.fill_between(gen, p_bis, m_bis,
+                     alpha=0.4,
+                     color='red')
     plt.grid(True)
     plt.legend()
     plt.savefig('pbo.png', bbox_inches='tight')

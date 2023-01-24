@@ -1,0 +1,18 @@
+{
+    "env_name": "sphere_2d_discrete",
+    "type": "discrete",
+    "pdf": "categorical",
+    "avg_type": "log",
+    "n_gen": 50,
+    "n_ind": 6,
+    "n_avg": 1,
+    "n_cpu": 6,
+    "lr": 5.0e-3,
+    "arch": [2,2,2],
+    "epochs": 128,
+    "param_gen": 1,
+    "batch": 8,
+    "adv_clip": true,
+    "adv_decay": 0.5,
+    "continuity_regul": 1e-4
+}

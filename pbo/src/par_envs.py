@@ -74,7 +74,7 @@ class par_envs:
         # Send
         for pipe in range(n):
             self.p_pipes[pipe].send(('step', actions[pipe], ep+pipe))
-
+            
         # Receive
         rwd = np.array([])
         acc = np.array([])
@@ -83,7 +83,12 @@ class par_envs:
             rwd   = np.append(rwd, r)
             acc   = np.append(acc, a)
 
-        acc = np.reshape(acc, (n,self.act_size))
+        # quick fix
+        temp_size = self.act_size
+        if isinstance(self.act_size,list):
+            temp_size = len(self.act_size)
+
+        acc = np.reshape(acc, (n,temp_size))
         rwd = np.reshape(rwd, (n,1))
 
         return rwd, acc
@@ -112,7 +117,7 @@ def worker(env_name, name, pipe, p_pipe, output_path, env_path):
                 rwd, acc = env.step(data, ep)
                 pipe.send((rwd, acc))
             if (command == 'get_dims'):
-                act_size = int(env.act_size)
+                act_size = env.act_size # remove int()
                 obs_size = int(env.obs_size)
                 pipe.send((act_size, obs_size))
             if command == 'close':

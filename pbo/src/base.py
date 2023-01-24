@@ -59,11 +59,12 @@ class base_pbo:
             self.idx          += 1
 
     # Store learning data
-    def store_learning_data(self, gen, bst_ep, bst_rwd, bst_acc):
+    def store_learning_data(self, gen, bst_ep, bst_rwd, bst_acc, avg_rwd):
 
         self.bst_gen[gen] = gen
         self.bst_ep [gen] = bst_ep
         self.bst_rwd[gen] = bst_rwd
+        self.avg_rwd[gen] = avg_rwd
         self.bst_acc[gen] = bst_acc
 
     # Write learning data
@@ -85,6 +86,13 @@ class base_pbo:
                               np.reshape(self.bst_ep,         (-1,1)),
                               np.reshape(self.bst_rwd*(-1.0), (-1,1)),
                               self.bst_acc]),
+                   fmt='%.5e')
+
+        # Save Avg reward for plotting
+        filename = path+'/pbo_avg_'+str(run)
+        np.savetxt(filename,
+                   np.hstack([np.reshape(self.bst_gen,        (-1,1)),
+                              np.reshape(self.avg_rwd*(-1.0), (-1,1))]),
                    fmt='%.5e')
 
     # Compute advantages
