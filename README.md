@@ -1,7 +1,7 @@
 # Policy-based optimization
 
 <p align="center">
-  <img align="right" width="350" alt="logo" src="pbo/logo.png">
+  <img align="right" width="350" alt="logo" src="pbo/msc/logo.png">
 </p>
 
 PBO (policy-based optimization) is a degenerate policy gradient algorithm used for black-box optimization. It shares common traits with both DRL (deep reinforcement learning) policy gradient methods, and ES (evolution strategies) techniques. In this repository, we present a parallel PBO algorithm with full covariance matrix adaptation, along with a few demonstrative applications. The related pre-print can be found <a href="https://arxiv.org/abs/2104.06175">here</a> and the formal paper <a href="https://link.springer.com/article/10.1007/s00521-022-07779-0">here</a>. This paper formalizes the approach used in previous related works:
